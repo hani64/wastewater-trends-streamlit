@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from azure.storage.blob import BlobServiceClient
 from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 import pandas as pd
+import plotly.express as px
 
 
 load_dotenv()
@@ -40,6 +41,82 @@ def upload_wastewater_trends(df: pd.DataFrame):
     with open(f"./{UPLOAD_BLOB_FILENAME}", "rb") as blob:
         blob_client.upload_blob(data=blob, overwrite=True)
     print("Data Uploaded")
+
+def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
+    df = df[df["measure"] == measure]
+    # convert Viral_Activity_Level to a categorical order
+    # viral_activity_order = ["NA2", "Non-detect", "Low", "Moderate", "High"]
+    # df.loc[:, "Viral_Activity_Level"] = pd.Categorical(df["Viral_Activity_Level"], categories=viral_activity_order, ordered=True)
+
+    labels = []
+    parents = []
+    values = []
+
+    site_only_mask = (
+        # First find all Site rows
+        (df['Grouping'] == 'Site') &
+        # Then exclude locations that also have City records
+        ~df['City'].isin(
+            df[df['Grouping'] == 'City']['Location'].unique()
+        )
+    )
+
+    prov_to_abbr = {
+        "Alberta": "AB",
+        "British Columbia": "BC",
+        "Manitoba": "MB",
+        "New Brunswick": "NB",
+        "Newfoundland and Labrador": "NL",
+        "Nova Scotia": "NS",
+        "Ontario": "ON",
+        "Prince Edward Island": "PE",
+        "Quebec": "QC",
+        "Saskatchewan": "SK",
+        "Northwest Territories": "NT",
+        "Nunavut": "NU",
+        "Yukon": "YT"
+    }
+
+    for i, row in df.iterrows():
+        values.append(row["Viral_Activity_Level"])
+        if row["Grouping"] == "Site":
+            labels.append(row["Location"])
+            parent = prov_to_abbr[row["Province"]] if site_only_mask[i] else row["City"]
+            parents.append(parent)
+        if row["Grouping"] == "City":
+            labels.append(row["City"])
+            parents.append(prov_to_abbr[row["Province"]])
+        if row["Grouping"] == "Province":
+            labels.append(prov_to_abbr[row["Province"]])
+            parents.append("Canada")
+        if row["Grouping"] == "Canada":
+            labels.append("Canada")
+            parents.append("")
+            
+
+    data = {
+        "labels": labels,
+        "parents": parents,
+        "values": values
+    }
+
+    # Convert to a DataFrame
+    data = pd.DataFrame(data)
+
+    fig = px.sunburst(
+        data,
+        names='labels',
+        parents='parents',
+        color='values',
+        hover_data=['values'],
+        color_discrete_map={'NA2': '#ADD8E6', 'Non-detect': '#ADD8E6', 'Low': '#90EE90', 'Moderate': '#FFD700', 'High': '#FF6B6B'},
+        title=f"Wastewater Viral Activity Levels by Region - {measure}",
+        width=800,
+        height=800,
+    )
+    fig.update_traces(hovertemplate="%{customdata[0]}", leaf=dict(opacity=1))
+    fig.update_layout(title_x=0.4)
+    return fig
 
 
 @st.dialog("Change Row Data")
@@ -99,6 +176,24 @@ def app():
             encoding="utf-16be", 
             dtype="string",
         )
+
+    if "measure" not in st.session_state:
+        st.session_state.measure = 'covN2'
+
+    left, right = st.columns([4, 1], vertical_alignment='center')
+    left.plotly_chart(create_sunburst_graph(st.session_state.df, st.session_state.measure), use_container_width=True)
+    if right.button("covN2", use_container_width=True):
+        st.session_state.measure = 'covN2'
+        st.rerun()
+    if right.button("rsv", use_container_width=True):
+        st.session_state.measure = 'rsv'
+        st.rerun()
+    if right.button("fluA", use_container_width=True):
+        st.session_state.measure = 'fluA'
+        st.rerun()
+    if right.button("fluB", use_container_width=True):
+        st.session_state.measure = 'fluB'
+        st.rerun()
 
     # Create a dataframe where only a single-row is selectable
     selected_row = st.dataframe(
