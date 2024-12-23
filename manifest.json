@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "locale": "English_Canada.1252",
+  "metadata": {
+    "appmode": "python-streamlit",
+    "entrypoint": "app"
+  },
+  "python": {
+    "version": "3.12.2",
+    "package_manager": {
+      "name": "pip",
+      "version": "24.3.1",
+      "package_file": "requirements.txt"
+    }
+  },
+  "files": {
+    "requirements.txt": {
+      "checksum": "c9886f1be4a3ae75fcd1505c4135f317"
+    },
+    ".env": {
+      "checksum": "89a9aebd8d4f86091bd6267b6f817c84"
+    },
+    ".gitignore": {
+      "checksum": "573608b9be9dc09545a822d838aebba1"
+    },
+    "app.py": {
+      "checksum": "ce6a489a203d1723e4f10cc368984863"
+    },
+    "wastewater-trend-out.csv": {
+      "checksum": "bc65dd148d88d4f235b730c5750e18f3"
+    }
+  }
+}
