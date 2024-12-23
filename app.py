@@ -15,6 +15,9 @@ CLIENT_ID = os.getenv("CLIENT_ID")
 DOWNLOAD_BLOB_FILENAME = "wastewater-trend-out.csv"
 UPLOAD_BLOB_FILENAME = "wastewater-trend-out.csv"
 
+DOWNLOAD_CONTAINER_PATH = "hani"
+UPLOAD_CONTAINER_PATH = "hani"
+
 blob_service_client = BlobServiceClient.from_connection_string(
     conn_str=AZURE_BLOB_CONNECTION_STRING
 )
@@ -25,7 +28,7 @@ blob_service_client = BlobServiceClient.from_connection_string(
 
 def download_wastewater_trends():
     blob_client = blob_service_client.get_blob_client(
-        container="hani", blob=DOWNLOAD_BLOB_FILENAME
+        container=DOWNLOAD_CONTAINER_PATH, blob=DOWNLOAD_BLOB_FILENAME
     )
     with open(f"./{DOWNLOAD_BLOB_FILENAME}", "wb") as blob:
         blob_data = blob_client.download_blob()
@@ -35,7 +38,7 @@ def download_wastewater_trends():
 
 def upload_wastewater_trends(df: pd.DataFrame):
     blob_client = blob_service_client.get_blob_client(
-        container="hani", blob=UPLOAD_BLOB_FILENAME
+        container=UPLOAD_CONTAINER_PATH, blob=UPLOAD_BLOB_FILENAME
     )
     df.to_csv(f"./{UPLOAD_BLOB_FILENAME}", encoding="utf-16be", index=False)
     with open(f"./{UPLOAD_BLOB_FILENAME}", "rb") as blob:
