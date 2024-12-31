@@ -26,6 +26,14 @@ blob_service_client = BlobServiceClient.from_connection_string(
 #     credential=ManagedIdentityCredential(client_id=CLIENT_ID)
 # )
 
+color_map = {
+   'High': '#FF6B6B',
+   'Moderate': '#FFD700',
+   'Low': '#90EE90',
+   'Non-detect': '#ADD8E6',  
+   'NA2': '#D3D3D3',
+}
+
 def download_wastewater_trends():
     blob_client = blob_service_client.get_blob_client(
         container=DOWNLOAD_CONTAINER_PATH, blob=DOWNLOAD_BLOB_FILENAME
@@ -112,7 +120,7 @@ def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
         parents='parents',
         color='values',
         hover_data=['values'],
-        color_discrete_map={'NA2': '#ADD8E6', 'Non-detect': '#ADD8E6', 'Low': '#90EE90', 'Moderate': '#FFD700', 'High': '#FF6B6B'},
+        color_discrete_map=color_map,
         title=f"Wastewater Viral Activity Levels by Region - {measure}",
         width=800,
         height=800,
@@ -185,17 +193,25 @@ def app():
 
     left, right = st.columns([4, 1], vertical_alignment='center')
     left.plotly_chart(create_sunburst_graph(st.session_state.df, st.session_state.measure), use_container_width=True)
-    if right.button("covN2", use_container_width=True):
-        st.session_state.measure = 'covN2'
-        st.rerun()
-    if right.button("rsv", use_container_width=True):
-        st.session_state.measure = 'rsv'
-        st.rerun()
-    if right.button("fluA", use_container_width=True):
-        st.session_state.measure = 'fluA'
-        st.rerun()
-    if right.button("fluB", use_container_width=True):
-        st.session_state.measure = 'fluB'
+
+    legend = pd.DataFrame(list(color_map.items()), columns=['Viral Activity Level', 'Color'])
+    legend = legend.style.map(lambda x: f"background-color: {x}", subset='Color').format('', subset='Color')
+    right.dataframe(
+        legend,
+        column_config={
+            "Color": st.column_config.Column(
+                width="small",
+            )
+            },
+            hide_index=True
+    )
+    selected = right.radio(
+        label="**Select measure:**",
+        options=["covN2", "rsv", "fluA", "fluB"],
+        key="measure_select",    
+    )
+    if selected != st.session_state.measure:
+        st.session_state.measure = selected
         st.rerun()
 
     # Create a dataframe where only a single-row is selectable
@@ -226,11 +242,16 @@ st.set_page_config(
 )
 
 # hack to make the dialog box wider
-st.markdown('''<style>
-div[data-testid="stDialog"] div[role="dialog"] {
-    width: 80%;
-}
-</style>''', unsafe_allow_html=True)
+st.markdown(
+    '''
+    <style>
+        div[data-testid="stDialog"] div[role="dialog"] {
+            width: 80%;
+        }
+    </style>
+    ''', 
+    unsafe_allow_html=True
+)
 
 st.title("📈 Wastewater Trends")
 print("app re-render")
