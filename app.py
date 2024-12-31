@@ -22,17 +22,18 @@ blob_service_client = BlobServiceClient.from_connection_string(
     conn_str=AZURE_BLOB_CONNECTION_STRING
 )
 # blob_service_client = BlobServiceClient(
-#     ACCOUNT_URL, 
+#     ACCOUNT_URL,
 #     credential=ManagedIdentityCredential(client_id=CLIENT_ID)
 # )
 
 color_map = {
-   'High': '#FF6B6B',
-   'Moderate': '#FFD700',
-   'Low': '#90EE90',
-   'Non-detect': '#ADD8E6',  
-   'NA2': '#D3D3D3',
+    "High": "#FF6B6B",
+    "Moderate": "#FFD700",
+    "Low": "#90EE90",
+    "Non-detect": "#ADD8E6",
+    "NA2": "#D3D3D3",
 }
+
 
 def download_wastewater_trends():
     blob_client = blob_service_client.get_blob_client(
@@ -53,6 +54,7 @@ def upload_wastewater_trends(df: pd.DataFrame):
         blob_client.upload_blob(data=blob, overwrite=True)
     print("Data Uploaded")
 
+
 def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
     df = df[df["measure"] == measure]
     # convert Viral_Activity_Level to a categorical order
@@ -65,11 +67,10 @@ def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
 
     site_only_mask = (
         # First find all Site rows
-        (df['Grouping'] == 'Site') &
+        (df["Grouping"] == "Site")
+        &
         # Then exclude locations that also have City records
-        ~df['City'].isin(
-            df[df['Grouping'] == 'City']['Location'].unique()
-        )
+        ~df["City"].isin(df[df["Grouping"] == "City"]["Location"].unique())
     )
 
     prov_to_abbr = {
@@ -85,7 +86,7 @@ def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
         "Saskatchewan": "SK",
         "Northwest Territories": "NT",
         "Nunavut": "NU",
-        "Yukon": "YT"
+        "Yukon": "YT",
     }
 
     for i, row in df.iterrows():
@@ -103,23 +104,18 @@ def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
         if row["Grouping"] == "Canada":
             labels.append("Canada")
             parents.append("")
-            
 
-    data = {
-        "labels": labels,
-        "parents": parents,
-        "values": values
-    }
+    data = {"labels": labels, "parents": parents, "values": values}
 
     # Convert to a DataFrame
     data = pd.DataFrame(data)
 
     fig = px.sunburst(
         data,
-        names='labels',
-        parents='parents',
-        color='values',
-        hover_data=['values'],
+        names="labels",
+        parents="parents",
+        color="values",
+        hover_data=["values"],
         color_discrete_map=color_map,
         title=f"Wastewater Viral Activity Levels by Region - {measure}",
         width=800,
@@ -135,21 +131,19 @@ def edit_data_form(selected_index, csv=f"./{DOWNLOAD_BLOB_FILENAME}"):
     edited_df = st.data_editor(
         st.session_state.df.iloc[[selected_index]],
         column_order=[
-            "Location", "measure", 
-            "latestTrends", "LatestLevel", 
-            "Grouping", "City", "Province", 
-            "Viral_Activity_Level"
+            "Location",
+            "measure",
+            "latestTrends",
+            "LatestLevel",
+            "Grouping",
+            "City",
+            "Province",
+            "Viral_Activity_Level",
         ],
         column_config={
             "Viral_Activity_Level": st.column_config.SelectboxColumn(
                 "Viral_Activity_Level",
-                options=[
-                    "High",
-                    "Moderate",
-                    "Low",
-                    "Non-detect",
-                    "NA2"
-                ],
+                options=["High", "Moderate", "Low", "Non-detect", "NA2"],
                 required=True,
             )
         },
@@ -163,15 +157,31 @@ def edit_data_form(selected_index, csv=f"./{DOWNLOAD_BLOB_FILENAME}"):
         st.session_state.df = pd.read_csv(csv, encoding="utf-16be", dtype="string")
 
         # gotta make this more efficient later
-        #st.session_state.df.loc[selected_index] = edited_df
-        st.session_state.df.loc[selected_index, "Location"] = edited_df.loc[selected_index, "Location"]
-        st.session_state.df.loc[selected_index, "measure"] = edited_df.loc[selected_index, "measure"]
-        st.session_state.df.loc[selected_index, "latestTrends"] = edited_df.loc[selected_index, "latestTrends"]
-        st.session_state.df.loc[selected_index, "LatestLevel"] = edited_df.loc[selected_index, "LatestLevel"]
-        st.session_state.df.loc[selected_index, "Grouping"] = edited_df.loc[selected_index, "Grouping"]
-        st.session_state.df.loc[selected_index, "City"] = edited_df.loc[selected_index, "City"]
-        st.session_state.df.loc[selected_index, "Province"] = edited_df.loc[selected_index, "Province"]
-        st.session_state.df.loc[selected_index, "Viral_Activity_Level"] = edited_df.loc[selected_index, "Viral_Activity_Level"]
+        # st.session_state.df.loc[selected_index] = edited_df
+        st.session_state.df.loc[selected_index, "Location"] = edited_df.loc[
+            selected_index, "Location"
+        ]
+        st.session_state.df.loc[selected_index, "measure"] = edited_df.loc[
+            selected_index, "measure"
+        ]
+        st.session_state.df.loc[selected_index, "latestTrends"] = edited_df.loc[
+            selected_index, "latestTrends"
+        ]
+        st.session_state.df.loc[selected_index, "LatestLevel"] = edited_df.loc[
+            selected_index, "LatestLevel"
+        ]
+        st.session_state.df.loc[selected_index, "Grouping"] = edited_df.loc[
+            selected_index, "Grouping"
+        ]
+        st.session_state.df.loc[selected_index, "City"] = edited_df.loc[
+            selected_index, "City"
+        ]
+        st.session_state.df.loc[selected_index, "Province"] = edited_df.loc[
+            selected_index, "Province"
+        ]
+        st.session_state.df.loc[selected_index, "Viral_Activity_Level"] = edited_df.loc[
+            selected_index, "Viral_Activity_Level"
+        ]
 
         upload_wastewater_trends(st.session_state.df)
 
@@ -183,32 +193,39 @@ def app():
     if "df" not in st.session_state:
         download_wastewater_trends()
         st.session_state.df = pd.read_csv(
-            DOWNLOAD_BLOB_FILENAME, 
-            encoding="utf-16be", 
+            DOWNLOAD_BLOB_FILENAME,
+            encoding="utf-16be",
             dtype="string",
         )
 
     if "measure" not in st.session_state:
-        st.session_state.measure = 'covN2'
+        st.session_state.measure = "covN2"
 
-    left, right = st.columns([4, 1], vertical_alignment='center')
-    left.plotly_chart(create_sunburst_graph(st.session_state.df, st.session_state.measure), use_container_width=True)
+    left, right = st.columns([4, 1], vertical_alignment="center")
+    left.plotly_chart(
+        create_sunburst_graph(st.session_state.df, st.session_state.measure),
+        use_container_width=True,
+    )
 
-    legend = pd.DataFrame(list(color_map.items()), columns=['Viral Activity Level', 'Color'])
-    legend = legend.style.map(lambda x: f"background-color: {x}", subset='Color').format('', subset='Color')
+    legend = pd.DataFrame(
+        list(color_map.items()), columns=["Viral Activity Level", "Color"]
+    )
+    legend = legend.style.map(
+        lambda x: f"background-color: {x}", subset="Color"
+    ).format("", subset="Color")
     right.dataframe(
         legend,
         column_config={
             "Color": st.column_config.Column(
                 width="small",
             )
-            },
-            hide_index=True
+        },
+        hide_index=True,
     )
     selected = right.radio(
         label="**Select measure:**",
         options=["covN2", "rsv", "fluA", "fluB"],
-        key="measure_select",    
+        key="measure_select",
     )
     if selected != st.session_state.measure:
         st.session_state.measure = selected
@@ -222,11 +239,15 @@ def app():
         on_select="rerun",
         hide_index=True,
         column_order=[
-            "Location", "measure", 
-            "latestTrends", "LatestLevel", 
-            "Grouping", "City", "Province", 
-            "Viral_Activity_Level"
-        ]
+            "Location",
+            "measure",
+            "latestTrends",
+            "LatestLevel",
+            "Grouping",
+            "City",
+            "Province",
+            "Viral_Activity_Level",
+        ],
     )
 
     # Get the index of the selected row, iff a row is selected
@@ -243,20 +264,21 @@ st.set_page_config(
 
 # hack to make the dialog box wider
 st.markdown(
-    '''
+    """
     <style>
         div[data-testid="stDialog"] div[role="dialog"] {
             width: 80%;
         }
     </style>
-    ''', 
-    unsafe_allow_html=True
+    """,
+    unsafe_allow_html=True,
 )
 
 st.title("📈 Wastewater Trends")
 print("app re-render")
 app()
-st.markdown("""
+st.markdown(
+    """
 ## How to Use This App
 
 1. Use the selection box on the left of any row to select the site you want to modify
@@ -265,4 +287,5 @@ st.markdown("""
 5. Click "Submit" to save your changes
 
 For any questions or issues, please contact the system administrator.
-""")
+"""
+)
