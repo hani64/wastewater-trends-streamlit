@@ -34,6 +34,7 @@ color_map = {
     "Low": "#90EE90",
     "Non-detect": "#ADD8E6",
     "NA2": "#D3D3D3",
+    "NA1": "#A8A8A8",
 }
 
 
