@@ -18,6 +18,8 @@ UPLOAD_BLOB_FILENAME = "wastewater-trend-out.csv"
 DOWNLOAD_CONTAINER_PATH = "hani"
 UPLOAD_CONTAINER_PATH = "hani"
 
+ENCODING = os.getenv("ENCODING", default="utf-8")
+
 blob_service_client = BlobServiceClient.from_connection_string(
     conn_str=AZURE_BLOB_CONNECTION_STRING
 )
@@ -49,7 +51,7 @@ def upload_wastewater_trends(df: pd.DataFrame):
     blob_client = blob_service_client.get_blob_client(
         container=UPLOAD_CONTAINER_PATH, blob=UPLOAD_BLOB_FILENAME
     )
-    df.to_csv(f"./{UPLOAD_BLOB_FILENAME}", encoding="utf-16be", index=False)
+    df.to_csv(f"./{UPLOAD_BLOB_FILENAME}", encoding=ENCODING, index=False)
     with open(f"./{UPLOAD_BLOB_FILENAME}", "rb") as blob:
         blob_client.upload_blob(data=blob, overwrite=True)
     print("Data Uploaded")
@@ -154,7 +156,7 @@ def edit_data_form(selected_index, csv=f"./{DOWNLOAD_BLOB_FILENAME}"):
     if st.button("Submit", type="primary"):
         # re-download most up-to-date csv before editing and uploading
         download_wastewater_trends()
-        st.session_state.df = pd.read_csv(csv, encoding="utf-16be", dtype="string")
+        st.session_state.df = pd.read_csv(csv, encoding=ENCODING, dtype="string")
 
         # gotta make this more efficient later
         # st.session_state.df.loc[selected_index] = edited_df
@@ -194,7 +196,7 @@ def app():
         download_wastewater_trends()
         st.session_state.df = pd.read_csv(
             DOWNLOAD_BLOB_FILENAME,
-            encoding="utf-16be",
+            encoding=ENCODING,
             dtype="string",
         )
 
