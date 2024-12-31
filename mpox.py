@@ -135,7 +135,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("Ⓜ️ Wastewater Mpox")
+st.title("Ⓜ️ Mpox Trends")
 print("app re-render")
 mpox()
 st.markdown(
