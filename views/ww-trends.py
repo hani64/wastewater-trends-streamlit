@@ -260,8 +260,8 @@ def app():
 
 
 st.set_page_config(
-    page_title="Infobase Table",
-    page_icon="📈",
+    page_title="Wastewater Trends",
+    page_icon="🚰",
     layout="wide",
     initial_sidebar_state="expanded",
 )

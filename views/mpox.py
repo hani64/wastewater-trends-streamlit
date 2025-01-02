@@ -93,7 +93,7 @@ def edit_data_form(selected_index, csv=f"./{DOWNLOAD_BLOB_FILENAME}"):
         st.rerun()
 
 
-def mpox():
+def app():
     if "df_mpox" not in st.session_state:
         download_wastewater_trends()
         st.session_state.df_mpox = pd.read_csv(
@@ -117,8 +117,8 @@ def mpox():
 
 
 st.set_page_config(
-    page_title="Infobase Table",
-    page_icon="📈",
+    page_title="Mpox Trends",
+    page_icon="Ⓜ️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -137,7 +137,7 @@ st.markdown(
 
 st.title("Ⓜ️ Mpox Trends")
 print("app re-render")
-mpox()
+app()
 st.markdown(
     """
 ## How to Use This App
