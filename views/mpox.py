@@ -118,7 +118,7 @@ def app():
 
 st.set_page_config(
     page_title="Mpox Trends",
-    page_icon="Ⓜ️",
+    page_icon="🦠",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -135,7 +135,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("Ⓜ️ Mpox Trends")
+st.title("🦠 Mpox Trends")
 print("app re-render")
 app()
 st.markdown(

@@ -16,7 +16,7 @@ DOWNLOAD_BLOB_FILENAME = "allSites_Updated.csv"
 
 DOWNLOAD_CONTAINER_PATH = "hani"
 
-ENCODING_ALL_SITES = os.getenv("ENCODING_ALLSITES", default="utf-8")
+ENCODING_ALL_SITES = os.getenv("ENCODING_ALL_SITES", default="utf-8")
 
 
 blob_service_client = BlobServiceClient.from_connection_string(
