@@ -15,19 +15,19 @@
   },
   "files": {
     "requirements.txt": {
-      "checksum": "c9886f1be4a3ae75fcd1505c4135f317"
-    },
-    ".env": {
-      "checksum": "89a9aebd8d4f86091bd6267b6f817c84"
-    },
-    ".gitignore": {
-      "checksum": "573608b9be9dc09545a822d838aebba1"
+      "checksum": "61deb0e991c2eb160fba80e0d60179ee"
     },
     "app.py": {
-      "checksum": "ce6a489a203d1723e4f10cc368984863"
+      "checksum": "f93f3e2ef85b356af096b50596cabd0a"
     },
-    "wastewater-trend-out.csv": {
-      "checksum": "bc65dd148d88d4f235b730c5750e18f3"
+    "views/latest-measures.py": {
+      "checksum": "5ab6313b82bcd3737a225ef6e52c5aeb"
+    },
+    "views/mpox.py": {
+      "checksum": "0bc80128007293c39e114c02d2c52e91"
+    },
+    "views/ww-trends.py": {
+      "checksum": "617390c999bcac3e6565d74e3559d655"
     }
   }
 }
