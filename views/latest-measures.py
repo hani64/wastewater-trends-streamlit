@@ -29,12 +29,6 @@ blob_service_client = BlobServiceClient.from_connection_string(
 
 
 def download_all_sites():
-    time_now = int(time.time())
-    if os.path.isfile(f"./{DOWNLOAD_BLOB_FILENAME}") and os.path.getmtime(
-        f"./{DOWNLOAD_BLOB_FILENAME}"
-    ) > (time_now - 86400):
-        print("Data Cached")
-        return
     blob_client = blob_service_client.get_blob_client(
         container=DOWNLOAD_CONTAINER_PATH, blob=DOWNLOAD_BLOB_FILENAME
     )
@@ -125,13 +119,29 @@ def get_latest_obs_df(all_sites):
 
 def app():
     if "df_latest_obs" not in st.session_state:
-        download_all_sites()
-        all_sites = pd.read_csv(
-            DOWNLOAD_BLOB_FILENAME,
-            encoding=ENCODING_ALL_SITES,
-            dtype="string",
-        )
-        st.session_state.df_latest_obs = get_latest_obs_df(all_sites)
+        time_now = int(time.time())
+        # check if a cached latest_obs exists
+        if (
+            os.path.isfile("./latest_obs.csv")
+            and (time_now - os.path.getmtime("./latest_obs.csv"))
+            < 86400  # 86400 sec == 24 hours
+        ):
+            print("Data Cached")
+            st.session_state.df_latest_obs = pd.read_csv(
+                "./latest_obs.csv", encoding=ENCODING_ALL_SITES, dtype="string"
+            )
+        else:
+            download_all_sites()
+            all_sites = pd.read_csv(
+                DOWNLOAD_BLOB_FILENAME,
+                encoding=ENCODING_ALL_SITES,
+                dtype="string",
+            )
+            latest_obs_df = get_latest_obs_df(all_sites)
+            latest_obs_df.to_csv(
+                "./latest_obs.csv", encoding=ENCODING_ALL_SITES, index=False
+            )
+            st.session_state.df_latest_obs = latest_obs_df
 
     st.dataframe(
         st.session_state.df_latest_obs,
