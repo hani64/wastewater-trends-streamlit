@@ -41,6 +41,8 @@ def download_all_sites():
 def get_latest_obs_df(all_sites):
     # convert collDT to datetime
     all_sites["collDT"] = pd.to_datetime(all_sites["collDT"])
+    # remove rows that have conf measures
+    all_sites = all_sites.loc[~all_sites["measure"].str.startswith("conf")]
     # subset of allSite with only relevant columns
     all_sites_sub = all_sites[
         [
