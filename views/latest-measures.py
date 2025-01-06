@@ -143,8 +143,16 @@ def app():
             )
             st.session_state.df_latest_obs = latest_obs_df
 
+    # Filter the dataframe based on the selected measures
+    measures = st.session_state.df_latest_obs["measure"].unique()
+    selected_measures = st.multiselect(
+        "Select measures to filter by:", measures, default=measures
+    )
+    filtered_df = st.session_state.df_latest_obs[
+        st.session_state.df_latest_obs["measure"].isin(selected_measures)
+    ]
     st.dataframe(
-        st.session_state.df_latest_obs,
+        filtered_df,
         use_container_width=True,
         hide_index=True,
         column_config={

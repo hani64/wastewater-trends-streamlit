@@ -235,9 +235,17 @@ def app():
         st.session_state.measure = selected
         st.rerun()
 
+    # Filter the dataframe based on the selected measures
+    measures = st.session_state.df_ww["measure"].unique()
+    selected_measures = st.multiselect(
+        "Select measures to filter by:", measures, default=measures
+    )
+    filtered_df = st.session_state.df_ww[
+        st.session_state.df_ww["measure"].isin(selected_measures)
+    ]
     # Create a dataframe where only a single-row is selectable
     selected_row = st.dataframe(
-        st.session_state.df_ww,
+        filtered_df,
         use_container_width=True,
         selection_mode="single-row",
         on_select="rerun",
@@ -256,7 +264,7 @@ def app():
 
     # Get the index of the selected row, iff a row is selected
     if selected_row.selection.get("rows", []):
-        edit_data_form(selected_row.selection.rows[0])
+        edit_data_form(filtered_df.index[selected_row.selection.rows[0]])
 
 
 st.set_page_config(
