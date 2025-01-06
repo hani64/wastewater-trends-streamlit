@@ -33,8 +33,8 @@ color_map = {
     "Moderate": "#FFD700",
     "Low": "#90EE90",
     "Non-detect": "#ADD8E6",
-    "NA2": "#D3D3D3",
-    "NA1": "#A8A8A8",
+    "NA1": "#D3D3D3",
+    "NA2": "#A8A8A8",
 }
 
 
@@ -146,7 +146,7 @@ def edit_data_form(selected_index, csv=f"./{DOWNLOAD_BLOB_FILENAME}"):
         column_config={
             "Viral_Activity_Level": st.column_config.SelectboxColumn(
                 "Viral_Activity_Level",
-                options=["High", "Moderate", "Low", "Non-detect", "NA2"],
+                options=["High", "Moderate", "Low", "Non-detect", "NA1", "NA2"],
                 required=True,
             )
         },
@@ -194,7 +194,7 @@ def edit_data_form(selected_index, csv=f"./{DOWNLOAD_BLOB_FILENAME}"):
 
 
 def app():
-    if "df" not in st.session_state:
+    if "df_ww" not in st.session_state:
         download_wastewater_trends()
         st.session_state.df_ww = pd.read_csv(
             DOWNLOAD_BLOB_FILENAME,
@@ -206,6 +206,7 @@ def app():
         st.session_state.measure = "covN2"
 
     left, right = st.columns([4, 1], vertical_alignment="center")
+
     left.plotly_chart(
         create_sunburst_graph(st.session_state.df_ww, st.session_state.measure),
         use_container_width=True,
@@ -226,6 +227,7 @@ def app():
         },
         hide_index=True,
     )
+
     selected = right.radio(
         label="**Select measure:**",
         options=["covN2", "rsv", "fluA", "fluB"],
@@ -235,14 +237,30 @@ def app():
         st.session_state.measure = selected
         st.rerun()
 
+    # Filter the dataframe based on all sites
+    sites = st.session_state.df_ww["Location"].unique()
+    sites = ["All Sites"] + list(sites)
+    selected_sites = st.multiselect(
+        "Select sites to filter by:", sites, default=["All Sites"]
+    )
+
     # Filter the dataframe based on the selected measures
     measures = st.session_state.df_ww["measure"].unique()
     selected_measures = st.multiselect(
         "Select measures to filter by:", measures, default=measures
     )
-    filtered_df = st.session_state.df_ww[
-        st.session_state.df_ww["measure"].isin(selected_measures)
-    ]
+
+    # Filter the dataframe based on the selected measures and sites
+    if "All Sites" in selected_sites:
+        filtered_df = st.session_state.df_ww[
+            st.session_state.df_ww["measure"].isin(selected_measures)
+        ]
+    else:
+        filtered_df = st.session_state.df_ww[
+            st.session_state.df_ww["measure"].isin(selected_measures)
+            & st.session_state.df_ww["Location"].isin(selected_sites)
+        ]
+
     # Create a dataframe where only a single-row is selectable
     selected_row = st.dataframe(
         filtered_df,

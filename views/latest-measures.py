@@ -145,14 +145,30 @@ def app():
             )
             st.session_state.df_latest_obs = latest_obs_df
 
+    # Filter the dataframe based on site names
+    sites = st.session_state.df_latest_obs["name"].unique()
+    sites = ["All Sites"] + list(sites)
+    selected_sites = st.multiselect(
+        "Select sites to filter by:", sites, default=["All Sites"]
+    )
+
     # Filter the dataframe based on the selected measures
     measures = st.session_state.df_latest_obs["measure"].unique()
     selected_measures = st.multiselect(
         "Select measures to filter by:", measures, default=measures
     )
-    filtered_df = st.session_state.df_latest_obs[
-        st.session_state.df_latest_obs["measure"].isin(selected_measures)
-    ]
+
+    # Filter the dataframe based on the selected measures and sites
+    if "All Sites" in selected_sites:
+        filtered_df = st.session_state.df_latest_obs[
+            st.session_state.df_latest_obs["measure"].isin(selected_measures)
+        ]
+    else:
+        filtered_df = st.session_state.df_latest_obs[
+            st.session_state.df_latest_obs["measure"].isin(selected_measures)
+            & st.session_state.df_latest_obs["name"].isin(selected_sites)
+        ]
+
     st.dataframe(
         filtered_df,
         use_container_width=True,
