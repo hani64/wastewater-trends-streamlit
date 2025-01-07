@@ -1,16 +1,11 @@
 import os
 import streamlit as st
-from dotenv import load_dotenv
 from azure.storage.blob import BlobServiceClient
-from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 import pandas as pd
 import plotly.express as px
 
+from blob_utils import download_df, upload_df, get_blob_service_client_from_conn_str
 
-load_dotenv()
-AZURE_BLOB_CONNECTION_STRING = os.getenv("AZURE_BLOB_CONNECTION_STRING")
-ACCOUNT_URL = os.getenv("ACCOUNT_URL")
-CLIENT_ID = os.getenv("CLIENT_ID")
 
 DOWNLOAD_BLOB_FILENAME = "wastewater-trend-out.csv"
 UPLOAD_BLOB_FILENAME = "wastewater-trend-out.csv"
@@ -18,17 +13,11 @@ UPLOAD_BLOB_FILENAME = "wastewater-trend-out.csv"
 DOWNLOAD_CONTAINER_PATH = "hani"
 UPLOAD_CONTAINER_PATH = "hani"
 
-ENCODING_WWT = os.getenv("ENCODING_WWT", default="utf-8")
+BLOB_SERVICE_CLIENT = get_blob_service_client_from_conn_str()
 
-blob_service_client = BlobServiceClient.from_connection_string(
-    conn_str=AZURE_BLOB_CONNECTION_STRING
-)
-# blob_service_client = BlobServiceClient(
-#     ACCOUNT_URL,
-#     credential=ManagedIdentityCredential(client_id=CLIENT_ID)
-# )
+ENCODINGS = ["utf-8", "latin1", "utf-16be"]
 
-color_map = {
+COLOR_MAP = {
     "High": "#FF6B6B",
     "Moderate": "#FFD700",
     "Low": "#90EE90",
@@ -36,26 +25,6 @@ color_map = {
     "NA1": "#D3D3D3",
     "NA2": "#A8A8A8",
 }
-
-
-def download_wastewater_trends():
-    blob_client = blob_service_client.get_blob_client(
-        container=DOWNLOAD_CONTAINER_PATH, blob=DOWNLOAD_BLOB_FILENAME
-    )
-    with open(f"./{DOWNLOAD_BLOB_FILENAME}", "wb") as blob:
-        blob_data = blob_client.download_blob()
-        blob_data.readinto(blob)
-    print("Data Downloaded")
-
-
-def upload_wastewater_trends(df: pd.DataFrame):
-    blob_client = blob_service_client.get_blob_client(
-        container=UPLOAD_CONTAINER_PATH, blob=UPLOAD_BLOB_FILENAME
-    )
-    df.to_csv(f"./{UPLOAD_BLOB_FILENAME}", encoding=ENCODING_WWT, index=False)
-    with open(f"./{UPLOAD_BLOB_FILENAME}", "rb") as blob:
-        blob_client.upload_blob(data=blob, overwrite=True)
-    print("Data Uploaded")
 
 
 def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
@@ -119,7 +88,7 @@ def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
         parents="parents",
         color="values",
         hover_data=["values"],
-        color_discrete_map=color_map,
+        color_discrete_map=COLOR_MAP,
         title=f"Wastewater Viral Activity Levels by Region - {measure}",
         width=800,
         height=800,
@@ -157,8 +126,12 @@ def edit_data_form(selected_index, csv=f"./{DOWNLOAD_BLOB_FILENAME}"):
 
     if st.button("Submit", type="primary"):
         # re-download most up-to-date csv before editing and uploading
-        download_wastewater_trends()
-        st.session_state.df_ww = pd.read_csv(csv, encoding=ENCODING_WWT, dtype="string")
+        st.session_state.df_ww = download_df(
+            BLOB_SERVICE_CLIENT,
+            DOWNLOAD_CONTAINER_PATH,
+            DOWNLOAD_BLOB_FILENAME,
+            ENCODINGS,
+        )
 
         # gotta make this more efficient later
         # st.session_state.df_ww.loc[selected_index] = edited_df
@@ -187,7 +160,14 @@ def edit_data_form(selected_index, csv=f"./{DOWNLOAD_BLOB_FILENAME}"):
             edited_df.loc[selected_index, "Viral_Activity_Level"]
         )
 
-        upload_wastewater_trends(st.session_state.df_ww)
+        # upload_wastewater_trends(st.session_state.df_ww)
+        upload_df(
+            BLOB_SERVICE_CLIENT,
+            st.session_state.df_ww,
+            UPLOAD_CONTAINER_PATH,
+            UPLOAD_BLOB_FILENAME,
+            ENCODINGS,
+        )
 
         print("dialog triggered re-render")
         st.rerun()
@@ -195,11 +175,11 @@ def edit_data_form(selected_index, csv=f"./{DOWNLOAD_BLOB_FILENAME}"):
 
 def app():
     if "df_ww" not in st.session_state:
-        download_wastewater_trends()
-        st.session_state.df_ww = pd.read_csv(
+        st.session_state.df_ww = download_df(
+            BLOB_SERVICE_CLIENT,
+            DOWNLOAD_CONTAINER_PATH,
             DOWNLOAD_BLOB_FILENAME,
-            encoding=ENCODING_WWT,
-            dtype="string",
+            ENCODINGS,
         )
 
     if "measure" not in st.session_state:
@@ -213,7 +193,7 @@ def app():
     )
 
     legend = pd.DataFrame(
-        list(color_map.items()), columns=["Viral Activity Level", "Color"]
+        list(COLOR_MAP.items()), columns=["Viral Activity Level", "Color"]
     )
     legend = legend.style.map(
         lambda x: f"background-color: {x}", subset="Color"

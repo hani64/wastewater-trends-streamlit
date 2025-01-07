@@ -1,16 +1,11 @@
 import os
 import pandas as pd
-from dotenv import load_dotenv
 import streamlit as st
 from azure.storage.blob import BlobServiceClient
-from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 import time
 
+from blob_utils import download_df, get_blob_service_client_from_conn_str
 
-load_dotenv()
-AZURE_BLOB_CONNECTION_STRING = os.getenv("AZURE_BLOB_CONNECTION_STRING")
-ACCOUNT_URL = os.getenv("ACCOUNT_URL")
-CLIENT_ID = os.getenv("CLIENT_ID")
 
 DOWNLOAD_BLOB_FILENAME = "allSites_Updated.csv"
 
@@ -18,24 +13,9 @@ DOWNLOAD_CONTAINER_PATH = "hani"
 
 ENCODING_ALL_SITES = os.getenv("ENCODING_ALL_SITES", default="utf-8")
 
+BLOB_SERVICE_CLIENT = get_blob_service_client_from_conn_str()
 
-blob_service_client = BlobServiceClient.from_connection_string(
-    conn_str=AZURE_BLOB_CONNECTION_STRING
-)
-# blob_service_client = BlobServiceClient(
-#     ACCOUNT_URL,
-#     credential=ManagedIdentityCredential(client_id=CLIENT_ID)
-# )
-
-
-def download_all_sites():
-    blob_client = blob_service_client.get_blob_client(
-        container=DOWNLOAD_CONTAINER_PATH, blob=DOWNLOAD_BLOB_FILENAME
-    )
-    with open(f"./{DOWNLOAD_BLOB_FILENAME}", "wb") as blob:
-        blob_data = blob_client.download_blob()
-        blob_data.readinto(blob)
-    print("Data Downloaded")
+ENCODINGS = ["utf-8", "utf-16be", "latin1"]
 
 
 def get_latest_obs_df(all_sites):
@@ -133,17 +113,16 @@ def app():
                 "./latest_obs.csv", encoding=ENCODING_ALL_SITES, dtype="string"
             )
         else:
-            download_all_sites()
-            all_sites = pd.read_csv(
+            all_sites = download_df(
+                BLOB_SERVICE_CLIENT,
+                DOWNLOAD_CONTAINER_PATH,
                 DOWNLOAD_BLOB_FILENAME,
-                encoding=ENCODING_ALL_SITES,
-                dtype="string",
+                ENCODINGS,
             )
-            latest_obs_df = get_latest_obs_df(all_sites)
-            latest_obs_df.to_csv(
+            st.session_state.df_latest_obs = get_latest_obs_df(all_sites)
+            st.session_state.df_latest_obs.to_csv(
                 "./latest_obs.csv", encoding=ENCODING_ALL_SITES, index=False
             )
-            st.session_state.df_latest_obs = latest_obs_df
 
     # Filter the dataframe based on site names
     sites = st.session_state.df_latest_obs["name"].unique()
