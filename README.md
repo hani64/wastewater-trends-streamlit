@@ -34,7 +34,7 @@ pip install -r requirements.txt
 
 Create a `.env` file in the project root:
 
-NOTE: the encoding variable are optional and should only be set if issue arise.
+NOTE: the encoding variables are optional and should only be set if issues arise.
 
 ```ini
 AZURE_BLOB_CONNECTION_STRING=your_connection_string
