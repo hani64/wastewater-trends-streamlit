@@ -1,14 +1,20 @@
-import os
 import streamlit as st
-from azure.storage.blob import BlobServiceClient
 import pandas as pd
 import plotly.express as px
 
-from blob_utils import download_df, upload_df, get_blob_service_client_from_conn_str
+from blob_utils import (
+    download_df,
+    upload_df,
+    get_blob_service_client_from_conn_str,
+    get_username,
+    get_log_entry,
+)
 
 
 DOWNLOAD_BLOB_FILENAME = "wastewater-trend-out.csv"
 UPLOAD_BLOB_FILENAME = "wastewater-trend-out.csv"
+
+USER_CHANGES_LOG_FILENAME = "user_changes_log.csv"
 
 DOWNLOAD_CONTAINER_PATH = "hani"
 UPLOAD_CONTAINER_PATH = "hani"
@@ -99,7 +105,7 @@ def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
 
 
 @st.dialog("Change Row Data")
-def edit_data_form(selected_index, csv=f"./{DOWNLOAD_BLOB_FILENAME}"):
+def edit_data_form(selected_index):
     edited_df = st.data_editor(
         st.session_state.df_ww.iloc[[selected_index]],
         column_order=[
@@ -131,6 +137,27 @@ def edit_data_form(selected_index, csv=f"./{DOWNLOAD_BLOB_FILENAME}"):
             DOWNLOAD_CONTAINER_PATH,
             DOWNLOAD_BLOB_FILENAME,
             ENCODINGS,
+        )
+
+        username = get_username()
+        log_entry = get_log_entry(
+            username,
+            st.session_state.df_ww.loc[selected_index],
+            edited_df.loc[selected_index],
+            "Wastewater Trends",
+        )
+        # Append the log entry to the log DataFrame
+        st.session_state.log_df = pd.concat(
+            [st.session_state.log_df, log_entry], ignore_index=True
+        )
+
+        # Save the log DataFrame to a CSV file
+        upload_df(
+            BLOB_SERVICE_CLIENT,
+            st.session_state.log_df,
+            UPLOAD_CONTAINER_PATH,
+            "user_changes_log.csv",
+            ["utf-8"],
         )
 
         # gotta make this more efficient later
@@ -166,7 +193,7 @@ def edit_data_form(selected_index, csv=f"./{DOWNLOAD_BLOB_FILENAME}"):
             st.session_state.df_ww,
             UPLOAD_CONTAINER_PATH,
             UPLOAD_BLOB_FILENAME,
-            ENCODINGS,
+            ["utf-8"],
         )
 
         print("dialog triggered re-render")
@@ -174,6 +201,15 @@ def edit_data_form(selected_index, csv=f"./{DOWNLOAD_BLOB_FILENAME}"):
 
 
 def app():
+    # Initialize the log DataFrame if it doesn't exist
+    if "log_df" not in st.session_state:
+        st.session_state.log_df = download_df(
+            BLOB_SERVICE_CLIENT,
+            DOWNLOAD_CONTAINER_PATH,
+            USER_CHANGES_LOG_FILENAME,
+            ENCODINGS,
+        )
+
     if "df_ww" not in st.session_state:
         st.session_state.df_ww = download_df(
             BLOB_SERVICE_CLIENT,
