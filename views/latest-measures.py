@@ -170,18 +170,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# hack to make the dialog box wider
-st.markdown(
-    """
-    <style>
-        div[data-testid="stDialog"] div[role="dialog"] {
-            width: 80%;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 st.title("🆕 Latest Measures")
 print("app re-render")
 app()
