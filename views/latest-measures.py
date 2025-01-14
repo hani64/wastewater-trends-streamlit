@@ -162,6 +162,26 @@ def app():
         },
     )
 
+    st.markdown(
+    """
+    ## Glossary
+    | Column            | Description                                               |
+    |-------------------|-----------------------------------------------------------|
+    | `name`            | The site name.                                            |
+    | `healthReg`       | The health region.                                        |
+    | `siteID`          | The site ID.                                              |
+    | `datasetID`       | The dataset ID.                                           |
+    | `measure`         | The measure name.                                         |
+    | `fraction`        | `liq` or `sol`                                            |
+    | `previousObs`     | The measure value that was observed before `latestObs`.   |
+    | `latestObs`       | The measure value that was last recorded.                 |
+    | `latestObsDT`     | The date at which `latestObs` was observed.               |
+    | `previousObsDT`   | The date at which the `previousObs` was observed.         |
+    | `sampleID_previous` | The sample ID of the previous observation.              |
+    | `sampleID_latest` | The sample ID of the latest observation.                  |
+    """
+)
+
 
 st.set_page_config(
     page_title="Latest Measures",
