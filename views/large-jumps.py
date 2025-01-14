@@ -24,8 +24,26 @@ def app():
         )
         st.session_state.df_large_jumps = historical_unusual_measures
 
+    # Filter the dataframe based on datasetID
+    sites = st.session_state.df_large_jumps["datasetID"].unique()
+    selected_sites = st.multiselect(
+        "Select datasetIDs to filter by:", sites, default=sites
+    )
+
+    # Filter the dataframe based on the selected measures
+    measures = st.session_state.df_large_jumps["measure"].unique()
+    selected_measures = st.multiselect(
+        "Select measures to filter by:", measures, default=measures
+    )
+
+    # Filter the dataframe based on the selected measures and datasetIDs
+    filtered_df = st.session_state.df_large_jumps[
+        st.session_state.df_large_jumps["measure"].isin(selected_measures)
+        & st.session_state.df_large_jumps["datasetID"].isin(selected_sites)
+    ]
+
     st.dataframe(
-        st.session_state.df_large_jumps,
+        filtered_df,
         use_container_width=True,
         hide_index=True,
         column_config={
@@ -44,18 +62,6 @@ st.set_page_config(
     page_icon="⚠️",
     layout="wide",
     initial_sidebar_state="expanded",
-)
-
-# hack to make the dialog box wider
-st.markdown(
-    """
-    <style>
-        div[data-testid="stDialog"] div[role="dialog"] {
-            width: 80%;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True,
 )
 
 st.title("⚠️ Large Jumps")
