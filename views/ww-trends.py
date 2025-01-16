@@ -11,8 +11,8 @@ from blob_utils import (
 )
 
 
-DOWNLOAD_BLOB_FILENAME = "wastewater-trend-out.csv"
-UPLOAD_BLOB_FILENAME = "wastewater-trend-out.csv"
+DOWNLOAD_BLOB_FILENAME = "wastewater-trend.csv"
+UPLOAD_BLOB_FILENAME = "wastewater-trend.csv"
 
 USER_CHANGES_LOG_FILENAME = "user_changes_log.csv"
 
