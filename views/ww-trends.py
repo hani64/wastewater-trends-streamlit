@@ -16,8 +16,8 @@ UPLOAD_BLOB_FILENAME = "wastewater-trend.csv"
 
 USER_CHANGES_LOG_FILENAME = "user_changes_log.csv"
 
-DOWNLOAD_CONTAINER_PATH = "hani"
-UPLOAD_CONTAINER_PATH = "hani"
+DOWNLOAD_CONTAINER_PATH = "wastewater"
+UPLOAD_CONTAINER_PATH = "wastewater"
 
 BLOB_SERVICE_CLIENT = get_blob_service_client_from_conn_str()
 

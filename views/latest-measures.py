@@ -9,7 +9,7 @@ from blob_utils import download_df, get_blob_service_client_from_conn_str
 
 DOWNLOAD_BLOB_FILENAME = "allSites.csv"
 
-DOWNLOAD_CONTAINER_PATH = "hani"
+DOWNLOAD_CONTAINER_PATH = "wastewater"
 
 ENCODING_ALL_SITES = os.getenv("ENCODING_ALL_SITES", default="utf-8")
 

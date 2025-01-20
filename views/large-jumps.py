@@ -7,7 +7,7 @@ from blob_utils import download_df, upload_df, get_blob_service_client_from_conn
 
 DOWNLOAD_BLOB_FILENAME = "historical_unusual_measures.csv"
 
-DOWNLOAD_CONTAINER_PATH = "hani"
+DOWNLOAD_CONTAINER_PATH = "wastewater"
 
 BLOB_SERVICE_CLIENT = get_blob_service_client_from_conn_str()
 
