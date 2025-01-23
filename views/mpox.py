@@ -19,7 +19,7 @@ UPLOAD_CONTAINER_PATH = "wastewater"
 
 BLOB_SERVICE_CLIENT = get_blob_service_client_from_conn_str()
 
-ENCODINGS = ["utf-16be", "utf-8", "latin1"]
+ENCODINGS = ["utf-8", "utf-16be", "latin1"]
 
 
 @st.dialog("Change Row Data")
