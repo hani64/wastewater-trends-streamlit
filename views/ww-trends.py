@@ -302,7 +302,7 @@ def app():
 
 
 st.set_page_config(
-    page_title="Wastewater Trends",
+    page_title="Respiratory Virus Trends",
     page_icon="🚰",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -320,7 +320,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("🚰 Wastewater Trends")
+st.title("🚰 Respiratory Virus Trends")
 print("app re-render")
 app()
 st.markdown(
