@@ -32,12 +32,12 @@ COLOR_MAP = {
     "NA2": "#A8A8A8",
 }
 
+# will implement when user groups are set up
+USER_CAN_EDIT = True
+
 
 def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
     df = df[df["measure"] == measure]
-    # convert Viral_Activity_Level to a categorical order
-    # viral_activity_order = ["NA2", "Non-detect", "Low", "Moderate", "High"]
-    # df.loc[:, "Viral_Activity_Level"] = pd.Categorical(df["Viral_Activity_Level"], categories=viral_activity_order, ordered=True)
 
     labels = []
     parents = []
@@ -105,19 +105,21 @@ def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
 
 
 @st.dialog("Change Row Data")
-def edit_data_form(selected_index):
+def edit_data_form(selected_indices):
+    columns = [
+        "Location",
+        "measure",
+        "latestTrends",
+        "LatestLevel",
+        "Grouping",
+        "City",
+        "Province",
+        "Viral_Activity_Level",
+    ]
+
     edited_df = st.data_editor(
-        st.session_state.df_ww.iloc[[selected_index]],
-        column_order=[
-            "Location",
-            "measure",
-            "latestTrends",
-            "LatestLevel",
-            "Grouping",
-            "City",
-            "Province",
-            "Viral_Activity_Level",
-        ],
+        st.session_state.df_ww.iloc[selected_indices],
+        column_order=columns,
         column_config={
             "Viral_Activity_Level": st.column_config.SelectboxColumn(
                 "Viral_Activity_Level",
@@ -127,7 +129,15 @@ def edit_data_form(selected_index):
         },
         use_container_width=True,
         hide_index=True,
-        disabled=("Location", "measure", "Grouping", "City", "Province"),
+        disabled=(
+            "Location",
+            "measure",
+            "latestTrends",
+            "LatestLevel",
+            "Grouping",
+            "City",
+            "Province",
+        ),
     )
 
     if st.button("Submit", type="primary"):
@@ -140,16 +150,21 @@ def edit_data_form(selected_index):
         )
 
         username = get_username()
-        log_entry = get_log_entry(
-            username,
-            st.session_state.df_ww.loc[selected_index],
-            edited_df.loc[selected_index],
-            "Wastewater Trends",
-        )
-        # Append the log entry to the log DataFrame
-        st.session_state.log_df = pd.concat(
-            [st.session_state.log_df, log_entry], ignore_index=True
-        )
+        for selected_index in selected_indices:
+            log_entry = get_log_entry(
+                username,
+                st.session_state.df_ww.loc[selected_index],
+                edited_df.loc[selected_index],
+                "Wastewater Trends",
+            )
+            # Append the log entry to the log DataFrame
+            st.session_state.log_df = pd.concat(
+                [st.session_state.log_df, log_entry], ignore_index=True
+            )
+            # Update the dataframe with the edited values
+            st.session_state.df_ww.loc[selected_index, columns] = edited_df.loc[
+                selected_index, columns
+            ]
 
         # Save the log DataFrame to a CSV file
         upload_df(
@@ -159,35 +174,7 @@ def edit_data_form(selected_index):
             "user_changes_log.csv",
             ["utf-8"],
         )
-
-        # gotta make this more efficient later
-        # st.session_state.df_ww.loc[selected_index] = edited_df
-        st.session_state.df_ww.loc[selected_index, "Location"] = edited_df.loc[
-            selected_index, "Location"
-        ]
-        st.session_state.df_ww.loc[selected_index, "measure"] = edited_df.loc[
-            selected_index, "measure"
-        ]
-        st.session_state.df_ww.loc[selected_index, "latestTrends"] = edited_df.loc[
-            selected_index, "latestTrends"
-        ]
-        st.session_state.df_ww.loc[selected_index, "LatestLevel"] = edited_df.loc[
-            selected_index, "LatestLevel"
-        ]
-        st.session_state.df_ww.loc[selected_index, "Grouping"] = edited_df.loc[
-            selected_index, "Grouping"
-        ]
-        st.session_state.df_ww.loc[selected_index, "City"] = edited_df.loc[
-            selected_index, "City"
-        ]
-        st.session_state.df_ww.loc[selected_index, "Province"] = edited_df.loc[
-            selected_index, "Province"
-        ]
-        st.session_state.df_ww.loc[selected_index, "Viral_Activity_Level"] = (
-            edited_df.loc[selected_index, "Viral_Activity_Level"]
-        )
-
-        # upload_wastewater_trends(st.session_state.df_ww)
+        # Save the edited DataFrame to a CSV file
         upload_df(
             BLOB_SERVICE_CLIENT,
             st.session_state.df_ww,
@@ -278,11 +265,11 @@ def app():
         ]
 
     # Create a dataframe where only a single-row is selectable
-    selected_row = st.dataframe(
+    selected_rows = st.dataframe(
         filtered_df,
         use_container_width=True,
-        selection_mode="single-row",
-        on_select="rerun",
+        selection_mode="multi-row" if USER_CAN_EDIT else None,
+        on_select="rerun" if USER_CAN_EDIT else "ignore",
         hide_index=True,
         column_order=[
             "Location",
@@ -297,8 +284,9 @@ def app():
     )
 
     # Get the index of the selected row, iff a row is selected
-    if selected_row.selection.get("rows", []):
-        edit_data_form(filtered_df.index[selected_row.selection.rows[0]])
+    if USER_CAN_EDIT and selected_rows.selection.get("rows", []):
+        if st.button("Edit Selected Row(s)"):
+            edit_data_form(filtered_df.index[selected_rows.selection.rows])
 
 
 st.set_page_config(
@@ -327,9 +315,10 @@ st.markdown(
     """
 ## How to Use This App
 
-1. Use the selection box on the left of any row to select the site you want to modify
-2. The selected row will be highlighted to show it is active
-3. Click on any field value in the "Change Row Data" dialog to modify it
+1. Use the selection box on the left of any row to select the site(s) you want to modify
+2. The selected row(s) will be highlighted to show they are active
+3. Click on the "Edit Selected Row(s)" button to open the "Change Row Data" dialog
+4. Click on any field value in the "Change Row Data" dialog to modify it
 5. Click "Submit" to save your changes
 
 For any questions or issues, please contact the system administrator.

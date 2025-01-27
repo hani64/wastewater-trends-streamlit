@@ -21,12 +21,17 @@ BLOB_SERVICE_CLIENT = get_blob_service_client_from_conn_str()
 
 ENCODINGS = ["utf-8", "utf-16be", "latin1"]
 
+# will implement when user groups are set up
+USER_CAN_EDIT = True
+
 
 @st.dialog("Change Row Data")
-def edit_data_form(selected_index):
+def edit_data_form(selected_indices):
+    columns = ["Location", "EpiYear", "Week_start", "g2r_label"]
+
     edited_df = st.data_editor(
-        st.session_state.df_mpox.iloc[[selected_index]],
-        column_order=["Location", "EpiYear", "Week_start", "g2r_label"],
+        st.session_state.df_mpox.iloc[selected_indices],
+        column_order=columns,
         column_config={
             "g2r_label": st.column_config.SelectboxColumn(
                 "g2r_label",
@@ -49,17 +54,22 @@ def edit_data_form(selected_index):
         )
 
         username = get_username()
-        log_entry = get_log_entry(
-            username,
-            st.session_state.df_mpox.loc[selected_index],
-            edited_df.loc[selected_index],
-            "Mpox Trends",
-        )
+        for selected_index in selected_indices:
+            log_entry = get_log_entry(
+                username,
+                st.session_state.df_mpox.loc[selected_index],
+                edited_df.loc[selected_index],
+                "Mpox Trends",
+            )
 
-        # Append the log entry to the log DataFrame
-        st.session_state.log_df = pd.concat(
-            [st.session_state.log_df, log_entry], ignore_index=True
-        )
+            # Append the log entry to the log DataFrame
+            st.session_state.log_df = pd.concat(
+                [st.session_state.log_df, log_entry], ignore_index=True
+            )
+            # Update the dataframe with the edited values
+            st.session_state.df_mpox.loc[selected_index, columns] = edited_df.loc[
+                selected_index, columns
+            ]
 
         # Save the log DataFrame to a CSV file
         upload_df(
@@ -69,22 +79,7 @@ def edit_data_form(selected_index):
             "user_changes_log.csv",
             ["utf-8"],
         )
-
-        # gotta make this more efficient later
-        # st.session_state.df_mpox.loc[selected_index] = edited_df
-        st.session_state.df_mpox.loc[selected_index, "Location"] = edited_df.loc[
-            selected_index, "Location"
-        ]
-        st.session_state.df_mpox.loc[selected_index, "EpiYear"] = edited_df.loc[
-            selected_index, "EpiYear"
-        ]
-        st.session_state.df_mpox.loc[selected_index, "Week_start"] = edited_df.loc[
-            selected_index, "Week_start"
-        ]
-        st.session_state.df_mpox.loc[selected_index, "g2r_label"] = edited_df.loc[
-            selected_index, "g2r_label"
-        ]
-
+        # Save the edited DataFrame to a CSV file
         upload_df(
             BLOB_SERVICE_CLIENT,
             st.session_state.df_mpox,
@@ -116,17 +111,18 @@ def app():
         )
 
     # Create a dataframe where only a single-row is selectable
-    selected_row = st.dataframe(
+    selected_rows = st.dataframe(
         st.session_state.df_mpox,
         use_container_width=True,
-        selection_mode="single-row",
-        on_select="rerun",
+        selection_mode="multi-row" if USER_CAN_EDIT else None,
+        on_select="rerun" if USER_CAN_EDIT else "ignore",
         hide_index=True,
     )
 
     # Get the index of the selected row, iff a row is selected
-    if selected_row.selection.get("rows", []):
-        edit_data_form(selected_row.selection.rows[0])
+    if USER_CAN_EDIT and selected_rows.selection.get("rows", []):
+        if st.button("Edit Selected Row(s)"):
+            edit_data_form(selected_rows.selection.rows)
 
 
 st.set_page_config(
@@ -155,9 +151,10 @@ st.markdown(
     """
 ## How to Use This App
 
-1. Use the selection box on the left of any row to select the site you want to modify
-2. The selected row will be highlighted to show it is active
-3. Click on any field value in the "Change Row Data" dialog to modify it
+1. Use the selection box on the left of any row to select the site(s) you want to modify
+2. The selected row(s) will be highlighted to show they are active
+3. Click on the "Edit Selected Row(s)" button to open the "Change Row Data" dialog
+4. Click on any field value in the "Change Row Data" dialog to modify it
 5. Click "Submit" to save your changes
 
 For any questions or issues, please contact the system administrator.
