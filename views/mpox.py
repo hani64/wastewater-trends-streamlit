@@ -121,7 +121,7 @@ def app():
 
     # Get the index of the selected row, iff a row is selected
     if USER_CAN_EDIT and selected_rows.selection.get("rows", []):
-        if st.button("Edit Selected Row(s)"):
+        if st.button("Edit Selected Row(s)", type="primary"):
             edit_data_form(selected_rows.selection.rows)
 
 
