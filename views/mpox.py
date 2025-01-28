@@ -7,6 +7,7 @@ from blob_utils import (
     get_blob_service_client_from_conn_str,
     get_username,
     get_log_entry,
+    get_user_info,
 )
 
 DOWNLOAD_BLOB_FILENAME = "wastewater-mpox.csv"
@@ -22,7 +23,7 @@ BLOB_SERVICE_CLIENT = get_blob_service_client_from_conn_str()
 ENCODINGS = ["utf-8", "utf-16be", "latin1"]
 
 # will implement when user groups are set up
-USER_CAN_EDIT = True
+USER_CAN_EDIT = "WW" in get_user_info().get("groups")
 
 
 @st.dialog("Change Row Data")

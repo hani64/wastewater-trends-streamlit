@@ -8,6 +8,7 @@ from blob_utils import (
     get_blob_service_client_from_conn_str,
     get_username,
     get_log_entry,
+    get_user_info,
 )
 
 
@@ -33,7 +34,8 @@ COLOR_MAP = {
 }
 
 # will implement when user groups are set up
-USER_CAN_EDIT = True
+USER_CAN_EDIT = "WW" in get_user_info().get("groups")
+
 
 
 def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
