@@ -159,6 +159,7 @@ def app():
             "previousObsDT": st.column_config.DatetimeColumn(
                 format="YYYY-MM-DD",
             ),
+            "fraction": None,
         },
     )
 

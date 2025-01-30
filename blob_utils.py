@@ -109,7 +109,7 @@ def get_log_entry(
         "User": username,
         "Time": current_time,
         "Page": page,
-        "Location": old_data.get("Location", "N/A"),
+        "siteID": old_data.get("siteID", "N/A"),
         "Measure": old_data.get("measure", "N/A"),
         "Changes": changes,
     }
