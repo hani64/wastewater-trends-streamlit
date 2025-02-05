@@ -34,7 +34,7 @@ def get_latest_obs_df(all_sites):
             "collDT",
             "measure",
             "valavg",
-            "fraction",
+            "reportDate"
         ]
     ]
 
@@ -50,18 +50,20 @@ def get_latest_obs_df(all_sites):
                     "valavg": "valavg_latest",
                     "collDT": "collDT_latest",
                     "sampleID": "sampleID_latest",
+                    "reportDate": "reportDate_latest"
                 },
                 inplace=True,
             )
             new_row["valavg_previous"] = None
             new_row["collDT_previous"] = None
             new_row["sampleID_previous"] = None
+            new_row["reportDate_previous"] = None
         else:
             first_obs = group.iloc[0].to_frame().T
             second_obs = group.iloc[1].to_frame().T
             new_row = first_obs.merge(
                 second_obs,
-                on=["name", "healthReg", "siteID", "datasetID", "measure", "fraction"],
+                on=["name", "healthReg", "siteID", "datasetID", "measure"],
                 suffixes=("_latest", "_previous"),
             )
 
@@ -72,11 +74,12 @@ def get_latest_obs_df(all_sites):
                 "siteID",
                 "datasetID",
                 "measure",
-                "fraction",
                 "valavg_previous",
                 "valavg_latest",
                 "collDT_previous",
                 "collDT_latest",
+                "reportDate_previous",
+                "reportDate_latest",
                 "sampleID_previous",
                 "sampleID_latest",
             ]
@@ -87,17 +90,56 @@ def get_latest_obs_df(all_sites):
             "siteID",
             "datasetID",
             "measure",
-            "fraction",
             "previousObs",
             "latestObs",
             "previousObsDT",
             "latestObsDT",
+            "previousReportDT",
+            "latestReportDT",
             "sampleID_previous",
             "sampleID_latest",
         ]
         latest_obs_df = pd.concat([latest_obs_df, new_row])
     return latest_obs_df
 
+    # convert collDT to datetime
+    all_sites["reportDate"] = pd.to_datetime(all_sites["reportDate"])
+    # remove rows that have conf measures
+    all_sites = all_sites.loc[~all_sites["measure"].str.startswith("conf")]
+    # subset of allSite with only relevant columns
+    all_sites_sub = all_sites[
+        [
+            "name",
+            "healthReg",
+            "siteID",
+            "datasetID",
+            "sampleID",
+            "reportDate",
+            "measure",
+            "valavg",
+        ]
+    ]
+
+    latest_report_df = pd.DataFrame()
+    for _, group in all_sites_sub.sort_values("reportDate", ascending=False).groupby(
+        ["siteID", "measure"]
+    ):
+        latest = group.iloc[0].to_frame().T
+
+        latest = latest[
+            [
+                "name",
+                "healthReg",
+                "siteID",
+                "datasetID",
+                "measure",
+                "valavg",
+                "reportDate",
+                "sampleID",
+            ]
+        ]
+        latest_report_df = pd.concat([latest_report_df, latest])
+    return latest_report_df
 
 def app():
     if "df_latest_obs" not in st.session_state:
@@ -162,6 +204,16 @@ def app():
             "fraction": None,
         },
     )
+    st.dataframe(
+        st.session_state.df_latest_report,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "reportDate": st.column_config.DatetimeColumn(
+                format="YYYY-MM-DD",
+            )
+        },
+    )
 
     st.markdown(
     """
@@ -177,6 +229,8 @@ def app():
     | `previousObs`     | The measure value that was observed before `latestObs`.   |
     | `latestObs`       | The measure value that was last recorded.                 |
     | `latestObsDT`     | The date at which `latestObs` was observed.               |
+    | `previousReportDT`| The date at which the `previousObs` was reported.         |
+    | `latestReportDT`  | The date at which the `latestObs` was reported.           |
     | `previousObsDT`   | The date at which the `previousObs` was observed.         |
     | `sampleID_previous` | The sample ID of the previous observation.              |
     | `sampleID_latest` | The sample ID of the latest observation.                  |
