@@ -102,44 +102,6 @@ def get_latest_obs_df(all_sites):
         latest_obs_df = pd.concat([latest_obs_df, new_row])
     return latest_obs_df
 
-    # convert collDT to datetime
-    all_sites["reportDate"] = pd.to_datetime(all_sites["reportDate"])
-    # remove rows that have conf measures
-    all_sites = all_sites.loc[~all_sites["measure"].str.startswith("conf")]
-    # subset of allSite with only relevant columns
-    all_sites_sub = all_sites[
-        [
-            "name",
-            "healthReg",
-            "siteID",
-            "datasetID",
-            "sampleID",
-            "reportDate",
-            "measure",
-            "valavg",
-        ]
-    ]
-
-    latest_report_df = pd.DataFrame()
-    for _, group in all_sites_sub.sort_values("reportDate", ascending=False).groupby(
-        ["siteID", "measure"]
-    ):
-        latest = group.iloc[0].to_frame().T
-
-        latest = latest[
-            [
-                "name",
-                "healthReg",
-                "siteID",
-                "datasetID",
-                "measure",
-                "valavg",
-                "reportDate",
-                "sampleID",
-            ]
-        ]
-        latest_report_df = pd.concat([latest_report_df, latest])
-    return latest_report_df
 
 def app():
     if "df_latest_obs" not in st.session_state:
@@ -202,16 +164,6 @@ def app():
                 format="YYYY-MM-DD",
             ),
             "fraction": None,
-        },
-    )
-    st.dataframe(
-        st.session_state.df_latest_report,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "reportDate": st.column_config.DatetimeColumn(
-                format="YYYY-MM-DD",
-            )
         },
     )
 
