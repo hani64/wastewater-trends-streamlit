@@ -1,26 +1,16 @@
 import streamlit as st
-from azure.storage.blob import BlobServiceClient
 import pandas as pd
 
-from blob_utils import (
-    download_df,
+from utils import (
+    FETCH_LARGE_JUMPS_QUERY,
+    UPDATE_LARGE_JUMPS_QUERY,
+    INSERT_LOG_QUERY,
+    get_cursor,
     get_log_entry,
-    get_username,
-    upload_df,
-    get_blob_service_client_from_conn_str,
+    get_username
 )
 
-DOWNLOAD_BLOB_FILENAME = "historical_unusual_measures.csv"
-UPLOAD_BLOB_FILENAME = "historical_unusual_measures.csv"
-
-USER_CHANGES_LOG_FILENAME = "user_changes_log.csv"
-
-DOWNLOAD_CONTAINER_PATH = "wastewater"
-UPLOAD_CONTAINER_PATH = "wastewater"
-
-BLOB_SERVICE_CLIENT = get_blob_service_client_from_conn_str()
-
-ENCODINGS = ["utf-8", "utf-16be", "latin1"]
+cursor = get_cursor()
 
 
 @st.dialog("Change Row Data")
@@ -33,7 +23,6 @@ def edit_data_form(selected_indices):
             "siteID",
             "datasetID",
             "measure",
-            "fraction",
             "previousObs",
             "latestObs",
             "previousObsDT",
@@ -57,83 +46,57 @@ def edit_data_form(selected_indices):
     )
 
     if st.button("Submit", type="primary"):
-        # re-download most up-to-date csv before editing and uploading
-        st.session_state.df_large_jumps = download_df(
-            BLOB_SERVICE_CLIENT,
-            DOWNLOAD_CONTAINER_PATH,
-            DOWNLOAD_BLOB_FILENAME,
-            ENCODINGS,
-        )
-
-        username = get_username()
         for selected_index in selected_indices:
-            log_entry = get_log_entry(
-                username,
-                st.session_state.df_large_jumps.loc[selected_index],
-                edited_df.loc[selected_index],
-                "Large Jumps",
+            # Update SQL DB with the edited values
+            row = edited_df.loc[selected_index]
+            cursor.execute(
+                UPDATE_LARGE_JUMPS_QUERY,
+                {
+                    "action_item": row["actionItem"],
+                    "site_id": row["siteID"],
+                    "dataset_id": row["datasetID"],
+                    "measure": row["measure"],
+                    "previous_obs_dt": row["previousObsDT"],
+                    "latest_obs_dt": row["latestObsDT"],
+                },
             )
-            # Append the log entry to the log DataFrame
-            st.session_state.log_df = pd.concat(
-                [st.session_state.log_df, log_entry], ignore_index=True
+            # Update SQL DB with the log entry
+            print(st.session_state.df_large_jumps.loc[selected_index])
+            print(edited_df.loc[selected_index])
+            cursor.execute(
+                INSERT_LOG_QUERY,
+                get_log_entry(
+                    get_username(),
+                    st.session_state.df_large_jumps.loc[selected_index],
+                    edited_df.loc[selected_index],
+                    "Large Jumps",
+                ),
             )
-            # Update the dataframe with the edited values
+            # Update local DataFrame with the edited values
             st.session_state.df_large_jumps.loc[selected_index, "actionItem"] = (
                 edited_df.loc[selected_index, "actionItem"]
             )
-
-        # Save the log DataFrame to a CSV file
-        upload_df(
-            BLOB_SERVICE_CLIENT,
-            st.session_state.log_df,
-            UPLOAD_CONTAINER_PATH,
-            "user_changes_log.csv",
-            ["utf-8"],
-        )
-        # Save the edited DataFrame to a CSV file
-        upload_df(
-            BLOB_SERVICE_CLIENT,
-            st.session_state.df_large_jumps,
-            UPLOAD_CONTAINER_PATH,
-            UPLOAD_BLOB_FILENAME,
-            ENCODINGS,
-        )
 
         print("dialog triggered re-render")
         st.rerun()
 
 
 def app():
-    # Initialize the log DataFrame if it doesn't exist
-    if "log_df" not in st.session_state:
-        st.session_state.log_df = download_df(
-            BLOB_SERVICE_CLIENT,
-            DOWNLOAD_CONTAINER_PATH,
-            USER_CHANGES_LOG_FILENAME,
-            ENCODINGS,
-        )
-
     if "df_large_jumps" not in st.session_state:
-        historical_unusual_measures = download_df(
-            BLOB_SERVICE_CLIENT,
-            DOWNLOAD_CONTAINER_PATH,
-            DOWNLOAD_BLOB_FILENAME,
-            ENCODINGS,
-        )
-        st.session_state.df_large_jumps = historical_unusual_measures
+        cursor.execute(FETCH_LARGE_JUMPS_QUERY)
+        rows = [row.asDict() for row in cursor.fetchall()]
+        st.session_state.df_large_jumps = pd.DataFrame(rows)
 
     # Filter the dataframe based on datasetID
     sites = st.session_state.df_large_jumps["datasetID"].unique()
     selected_sites = st.multiselect(
         "Select datasetIDs to filter by:", sites, default=sites
     )
-
     # Filter the dataframe based on the selected measures
     measures = st.session_state.df_large_jumps["measure"].unique()
     selected_measures = st.multiselect(
         "Select measures to filter by:", measures, default=measures
     )
-
     # Filter the dataframe based on the selected measures and datasetIDs
     filtered_df = st.session_state.df_large_jumps[
         st.session_state.df_large_jumps["measure"].isin(selected_measures)
@@ -153,7 +116,6 @@ def app():
             "previousObsDT": st.column_config.DatetimeColumn(
                 format="YYYY-MM-DD",
             ),
-            "fraction": None,
         },
     )
 
@@ -161,29 +123,6 @@ def app():
     if selected_rows.selection.get("rows", []):
         if st.button("Edit Selected Row(s)", type="primary"):
             edit_data_form(selected_rows.selection.rows)
-
-    st.markdown(
-        """
-        NOTE: `latestObsDT` shows when the latest **abnormal measure was observed**.
-        This is **NOT** the latest observation date in the dataset for that site and measure.
-        Refer to [Latest Measures](/latest-measures) for that information.
-
-        ## Glossary
-        | Column            | Description                                                                                     |
-        |-------------------|-------------------------------------------------------------------------------------------------|
-        | `siteID`          | The site ID.                                                                                    |
-        | `datasetID`       | The dataset ID.                                                                                 |
-        | `measure`         | The measure name.                                                                               |
-        | `fraction`        | `liq` or `sol`                                                                                  |
-        | `previousObs`     | The measure value that was observed before `latestObs`.                                         |
-        | `latestObs`       | The measure value that was identified as a `largeJump` or `newMax`.                             |
-        | `previousObsDT`   | The date at which the `previousObs` was observed.                                               |
-        | `latestObsDT`     | The date at which `latestObs` was observed.                                                     |
-        | `alert_type`      | The type of alert that was triggered:                                                           |
-        |                   |  • `largeJump`: if difference between log10(`latestObs`) and log10(`previousObs`) is > 1        |
-        |                   |  • `newMax`: if `latestObs` is > historical maximum recorded for that site and measure          |
-        """
-    )
 
 
 st.set_page_config(
@@ -208,3 +147,26 @@ st.markdown(
 st.title("⚠️ Large Jumps")
 print("app re-render")
 app()
+st.markdown(
+    """
+        NOTE: `latestObsDT` shows when the latest **abnormal measure was observed**.
+        This is **NOT** the latest observation date in the dataset for that site and measure.
+        Refer to [Latest Measures](/latest-measures) for that information.
+
+        ## Glossary
+        | Column            | Description                                                                                     |
+        |-------------------|-------------------------------------------------------------------------------------------------|
+        | `siteID`          | The site ID.                                                                                    |
+        | `datasetID`       | The dataset ID.                                                                                 |
+        | `measure`         | The measure name.                                                                               |
+        | `fraction`        | `liq` or `sol`                                                                                  |
+        | `previousObs`     | The measure value that was observed before `latestObs`.                                         |
+        | `latestObs`       | The measure value that was identified as a `largeJump` or `newMax`.                             |
+        | `previousObsDT`   | The date at which the `previousObs` was observed.                                               |
+        | `latestObsDT`     | The date at which `latestObs` was observed.                                                     |
+        | `alert_type`      | The type of alert that was triggered:                                                           |
+        |                   |  • `largeJump`: if difference between log10(`latestObs`) and log10(`previousObs`) is > 1        |
+        |                   |  • `newMax`: if `latestObs` is > historical maximum recorded for that site and measure          |
+        | `actionItem`      | If this measure is supposed to be removed or kept (keep by default                              |
+        """
+)
