@@ -61,8 +61,6 @@ def edit_data_form(selected_indices):
                 },
             )
             # Update SQL DB with the log entry
-            print(st.session_state.df_large_jumps.loc[selected_index])
-            print(edited_df.loc[selected_index])
             cursor.execute(
                 INSERT_LOG_QUERY,
                 get_log_entry(

@@ -2,27 +2,18 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-from blob_utils import (
-    download_df,
-    upload_df,
-    get_blob_service_client_from_conn_str,
-    get_username,
+from utils import (
+    FETCH_WW_TRENDS_QUERY,
+    INSERT_LOG_QUERY,
+    UPDATE_WW_TRENDS_QUERY,
+    get_cursor,
     get_log_entry,
     get_user_info,
+    get_username,
 )
 
+cursor = get_cursor()
 
-DOWNLOAD_BLOB_FILENAME = "wastewater-trend.csv"
-UPLOAD_BLOB_FILENAME = "wastewater-trend.csv"
-
-USER_CHANGES_LOG_FILENAME = "user_changes_log.csv"
-
-DOWNLOAD_CONTAINER_PATH = "wastewater"
-UPLOAD_CONTAINER_PATH = "wastewater"
-
-BLOB_SERVICE_CLIENT = get_blob_service_client_from_conn_str()
-
-ENCODINGS = ["utf-8", "latin1", "utf-16be"]
 
 COLOR_MAP = {
     "High": "#FF6B6B",
@@ -33,9 +24,7 @@ COLOR_MAP = {
     "NA2": "#A8A8A8",
 }
 
-# will implement when user groups are set up
 USER_CAN_EDIT = "WW" in get_user_info().get("groups")
-
 
 
 def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
@@ -143,75 +132,49 @@ def edit_data_form(selected_indices):
     )
 
     if st.button("Submit", type="primary"):
-        # re-download most up-to-date csv before editing and uploading
-        st.session_state.df_ww = download_df(
-            BLOB_SERVICE_CLIENT,
-            DOWNLOAD_CONTAINER_PATH,
-            DOWNLOAD_BLOB_FILENAME,
-            ENCODINGS,
-        )
-
-        username = get_username()
         for selected_index in selected_indices:
-            log_entry = get_log_entry(
-                username,
-                st.session_state.df_ww.loc[selected_index],
-                edited_df.loc[selected_index],
-                "Wastewater Trends",
+            # Update SQL DB with edited values
+            row = edited_df.loc[selected_index]
+            cursor.execute(
+                UPDATE_WW_TRENDS_QUERY,
+                {
+                    "viral_activity_level": row["Viral_Activity_Level"],
+                    "location": row["Location"],
+                    "measure": row["measure"],
+                    "city": row["City"],
+                    "province": row["Province"],
+                },
             )
-            # Append the log entry to the log DataFrame
-            st.session_state.log_df = pd.concat(
-                [st.session_state.log_df, log_entry], ignore_index=True
+            # Update SQL DB with the log entry
+            cursor.execute(
+                INSERT_LOG_QUERY,
+                get_log_entry(
+                    get_username(),
+                    st.session_state.df_ww.loc[selected_index],
+                    edited_df.loc[selected_index],
+                    "Water Wastewater Trends",
+                ),
             )
             # Update the dataframe with the edited values
-            st.session_state.df_ww.loc[selected_index, columns] = edited_df.loc[
-                selected_index, columns
-            ]
-
-        # Save the log DataFrame to a CSV file
-        upload_df(
-            BLOB_SERVICE_CLIENT,
-            st.session_state.log_df,
-            UPLOAD_CONTAINER_PATH,
-            "user_changes_log.csv",
-            ["utf-8"],
-        )
-        # Save the edited DataFrame to a CSV file
-        upload_df(
-            BLOB_SERVICE_CLIENT,
-            st.session_state.df_ww,
-            UPLOAD_CONTAINER_PATH,
-            UPLOAD_BLOB_FILENAME,
-            ["utf-8"],
-        )
+            st.session_state.df_ww.loc[selected_index, "Viral_Activity_Level"] = (
+                edited_df.loc[selected_index, "Viral_Activity_Level"]
+            )
 
         print("dialog triggered re-render")
         st.rerun()
 
 
 def app():
-    # Initialize the log DataFrame if it doesn't exist
-    if "log_df" not in st.session_state:
-        st.session_state.log_df = download_df(
-            BLOB_SERVICE_CLIENT,
-            DOWNLOAD_CONTAINER_PATH,
-            USER_CHANGES_LOG_FILENAME,
-            ENCODINGS,
-        )
-
     if "df_ww" not in st.session_state:
-        st.session_state.df_ww = download_df(
-            BLOB_SERVICE_CLIENT,
-            DOWNLOAD_CONTAINER_PATH,
-            DOWNLOAD_BLOB_FILENAME,
-            ENCODINGS,
-        )
+        cursor.execute(FETCH_WW_TRENDS_QUERY)
+        rows = [row.asDict() for row in cursor.fetchall()]
+        st.session_state.df_ww = pd.DataFrame(rows)
 
     if "measure" not in st.session_state:
         st.session_state.measure = "covN2"
 
     left, right = st.columns([4, 1], vertical_alignment="center")
-
+    
     left.plotly_chart(
         create_sunburst_graph(st.session_state.df_ww, st.session_state.measure),
         use_container_width=True,
@@ -248,13 +211,11 @@ def app():
     selected_sites = st.multiselect(
         "Select sites to filter by:", sites, default=["All Sites"]
     )
-
     # Filter the dataframe based on the selected measures
     measures = st.session_state.df_ww["measure"].unique()
     selected_measures = st.multiselect(
         "Select measures to filter by:", measures, default=measures
     )
-
     # Filter the dataframe based on the selected measures and sites
     if "All Sites" in selected_sites:
         filtered_df = st.session_state.df_ww[

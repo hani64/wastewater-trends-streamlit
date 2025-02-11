@@ -9,6 +9,8 @@ import json
 load_dotenv()
 
 LARGE_JUMPS_TABLE = os.getenv("LARGE_JUMPS_TABLE")
+MPOX_TABLE = os.getenv("MPOX_TABLE")
+WW_TRENDS_TABLE = os.getenv("WW_TRENDS_TABLE")
 LOGS_TABLE = os.getenv("LOGS_TABLE")
 
 FETCH_LARGE_JUMPS_QUERY = f"""
@@ -68,15 +70,63 @@ INSERT_LOG_QUERY = f"""
     )
 """
 
+FETCH_MPOX_QUERY = f"""
+    SELECT 
+        Location, 
+        EpiYear,
+        EpiWeek, 
+        Week_start, 
+        g2r_label
+    FROM 
+        {MPOX_TABLE}
+"""
 
-connection = sql.connect(
-    server_hostname=os.getenv("ADB_INSTANCE_NAME"),
-    http_path=os.getenv("ADB_HTTP_PATH"),
-    access_token=os.getenv("ADB_API_KEY"),
-)
+UPDATE_MPOX_QUERY = f"""
+    UPDATE {MPOX_TABLE}
+    SET g2r_label = %(g2r_label)s
+    WHERE Location = %(location)s 
+    AND EpiYear = %(epi_year)s
+    AND EpiWeek = %(epi_week)s
+    AND Week_start = %(week_start)s
+"""
+
+FETCH_WW_TRENDS_QUERY = f"""
+    SELECT 
+        Location,
+        measure,
+        latestTrends,
+        LatestLevel,
+        Grouping,
+        City,
+        Province,
+        Viral_Activity_Level
+    FROM 
+        {WW_TRENDS_TABLE}
+"""
+
+UPDATE_WW_TRENDS_QUERY = f"""
+    UPDATE {WW_TRENDS_TABLE}
+    SET Viral_Activity_Level = %(viral_activity_level)s
+    WHERE Location = %(location)s 
+    AND measure = %(measure)s
+    AND City = %(city)s
+    AND Province = %(province)s
+"""
+
+
+def get_db_connection():
+    if 'db_connection' not in st.session_state:
+        st.session_state.db_connection = sql.connect(
+            server_hostname=os.getenv("ADB_INSTANCE_NAME"),
+            http_path=os.getenv("ADB_HTTP_PATH"), 
+            access_token=os.getenv("ADB_API_KEY")
+        )
+        print("Created new database connection")
+    return st.session_state.db_connection
 
 def get_cursor():
-    return connection.cursor()
+    conn = get_db_connection()
+    return conn.cursor()
 
 def get_user_info() -> dict:
     user_info_json = st.context.headers.get("Rstudio-Connect-Credentials")

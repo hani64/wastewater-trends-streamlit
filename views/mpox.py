@@ -1,34 +1,24 @@
 import streamlit as st
 import pandas as pd
 
-from blob_utils import (
-    download_df,
-    upload_df,
-    get_blob_service_client_from_conn_str,
-    get_username,
-    get_log_entry,
+from utils import (
+    FETCH_MPOX_QUERY,
+    UPDATE_MPOX_QUERY,
+    INSERT_LOG_QUERY,
+    get_cursor,
     get_user_info,
+    get_log_entry,
+    get_username,
 )
 
-DOWNLOAD_BLOB_FILENAME = "wastewater-mpox.csv"
-UPLOAD_BLOB_FILENAME = "wastewater-mpox.csv"
+cursor = get_cursor()
 
-USER_CHANGES_LOG_FILENAME = "user_changes_log.csv"
-
-DOWNLOAD_CONTAINER_PATH = "wastewater"
-UPLOAD_CONTAINER_PATH = "wastewater"
-
-BLOB_SERVICE_CLIENT = get_blob_service_client_from_conn_str()
-
-ENCODINGS = ["utf-8", "utf-16be", "latin1"]
-
-# will implement when user groups are set up
 USER_CAN_EDIT = "WW" in get_user_info().get("groups")
 
 
 @st.dialog("Change Row Data")
 def edit_data_form(selected_indices):
-    columns = ["Location", "EpiYear", "Week_start", "g2r_label"]
+    columns = ["Location", "EpiYear", "EpiWeek", "Week_start", "g2r_label"]
 
     edited_df = st.data_editor(
         st.session_state.df_mpox.iloc[selected_indices],
@@ -42,74 +32,48 @@ def edit_data_form(selected_indices):
         },
         use_container_width=True,
         hide_index=True,
-        disabled=["Location"],
+        disabled=("Location", "EpiYear", "EpiWeek", "Week_start"),
     )
 
     if st.button("Submit", type="primary"):
-        # re-download most up-to-date csv before editing and uploading
-        st.session_state.df_mpox = download_df(
-            BLOB_SERVICE_CLIENT,
-            DOWNLOAD_CONTAINER_PATH,
-            DOWNLOAD_BLOB_FILENAME,
-            ENCODINGS,
-        )
-
-        username = get_username()
         for selected_index in selected_indices:
-            log_entry = get_log_entry(
-                username,
-                st.session_state.df_mpox.loc[selected_index],
-                edited_df.loc[selected_index],
-                "Mpox Trends",
+            # Update SQL DB with the edited values
+            row = edited_df.loc[selected_index]
+            cursor.execute(
+                UPDATE_MPOX_QUERY,
+                {
+                    "g2r_label": row["g2r_label"],
+                    "location": row["Location"],
+                    "epi_week": float(row["EpiWeek"]),
+                    "epi_year": float(row["EpiYear"]),
+                    "week_start": row["Week_start"],
+                },
             )
-
-            # Append the log entry to the log DataFrame
-            st.session_state.log_df = pd.concat(
-                [st.session_state.log_df, log_entry], ignore_index=True
+            # Update SQL DB with the log entry
+            cursor.execute(
+                INSERT_LOG_QUERY,
+                get_log_entry(
+                    get_username(),
+                    st.session_state.df_mpox.loc[selected_index],
+                    edited_df.loc[selected_index],
+                    "Mpox Trends",
+                ),
             )
-            # Update the dataframe with the edited values
-            st.session_state.df_mpox.loc[selected_index, columns] = edited_df.loc[
-                selected_index, columns
+            # Update local DataFrame with the edited values
+            st.session_state.df_mpox.loc[selected_index, "g2r_label"] = edited_df.loc[
+                selected_index, "g2r_label"
             ]
-
-        # Save the log DataFrame to a CSV file
-        upload_df(
-            BLOB_SERVICE_CLIENT,
-            st.session_state.log_df,
-            UPLOAD_CONTAINER_PATH,
-            "user_changes_log.csv",
-            ["utf-8"],
-        )
-        # Save the edited DataFrame to a CSV file
-        upload_df(
-            BLOB_SERVICE_CLIENT,
-            st.session_state.df_mpox,
-            UPLOAD_CONTAINER_PATH,
-            UPLOAD_BLOB_FILENAME,
-            ENCODINGS,
-        )
 
         print("dialog triggered re-render")
         st.rerun()
 
 
 def app():
-    # Initialize the log DataFrame if it doesn't exist
-    if "log_df" not in st.session_state:
-        st.session_state.log_df = download_df(
-            BLOB_SERVICE_CLIENT,
-            DOWNLOAD_CONTAINER_PATH,
-            USER_CHANGES_LOG_FILENAME,
-            ENCODINGS,
-        )
-
     if "df_mpox" not in st.session_state:
-        st.session_state.df_mpox = download_df(
-            BLOB_SERVICE_CLIENT,
-            DOWNLOAD_CONTAINER_PATH,
-            DOWNLOAD_BLOB_FILENAME,
-            ENCODINGS,
-        )
+        cursor.execute(FETCH_MPOX_QUERY)
+        rows = [row.asDict() for row in cursor.fetchall()]
+        st.session_state.df_mpox = pd.DataFrame(rows)
+        print(st.session_state.df_mpox.dtypes)
 
     # Create a dataframe where only a single-row is selectable
     selected_rows = st.dataframe(
