@@ -75,7 +75,7 @@ connection = sql.connect(
     access_token=os.getenv("ADB_API_KEY"),
 )
 
-def get_cursor() -> sql.cursor:
+def get_cursor():
     return connection.cursor()
 
 def get_user_info() -> dict:
