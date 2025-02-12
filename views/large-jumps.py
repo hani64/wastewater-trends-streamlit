@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
 
 from utils import (
     FETCH_LARGE_JUMPS_QUERY,
@@ -8,10 +9,41 @@ from utils import (
     can_user_edit,
     get_cursor,
     get_log_entry,
-    get_username
+    get_username,
 )
 
 USER_CAN_EDIT = can_user_edit()
+
+
+def create_jump_plot(row):
+    # Create figure
+    fig = go.Figure()
+
+    # Add points and connecting line
+    fig.add_trace(
+        go.Scatter(
+            x=[row["previousObsDT"], row["latestObsDT"]],
+            y=[row["previousObs"], row["latestObs"]],
+            mode="lines+markers",
+            name=row["measure"],
+            text=[
+                f"Previous: {row['previousObs']:.2f}",
+                f"Latest: {row['latestObs']:.2f}",
+            ],
+            hoverinfo="text",
+        )
+    )
+
+    # Update layout
+    fig.update_layout(
+        title=f"Large Jump for [{row['siteID']}] [{row['measure']}]",
+        xaxis_title="Date",
+        yaxis_title="Value",
+        height=400,
+        xaxis=dict(tickformat="%Y-%m-%d", dtick="D1"),  # Show daily ticks
+    )
+    return fig
+
 
 @st.dialog("Change Row Data")
 def edit_data_form(selected_indices):
@@ -123,6 +155,10 @@ def app():
     if USER_CAN_EDIT and selected_rows.selection.get("rows", []):
         if st.button("Edit Selected Row(s)", type="primary"):
             edit_data_form(selected_rows.selection.rows)
+        for idx in selected_rows.selection.rows:
+            row_data = filtered_df.iloc[idx]
+            fig = create_jump_plot(row_data)
+            st.plotly_chart(fig, use_container_width=True)
 
 
 st.set_page_config(
