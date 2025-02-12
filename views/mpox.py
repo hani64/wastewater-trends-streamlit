@@ -28,6 +28,7 @@ def edit_data_form(selected_indices):
                 options=["Consistent Detection", "No Detection"],
                 required=True,
             ),
+            "EpiYear": st.column_config.TextColumn()
         },
         use_container_width=True,
         hide_index=True,
@@ -85,6 +86,9 @@ def app():
         selection_mode="multi-row" if USER_CAN_EDIT else None,
         on_select="rerun" if USER_CAN_EDIT else "ignore",
         hide_index=True,
+        column_config={
+            "EpiYear": st.column_config.TextColumn(),
+        }
     )
 
     # Get the index of the selected row, iff a row is selected
