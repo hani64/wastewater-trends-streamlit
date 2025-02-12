@@ -12,8 +12,6 @@ from utils import (
     get_username,
 )
 
-cursor = get_cursor()
-
 
 COLOR_MAP = {
     "High": "#FF6B6B",
@@ -133,28 +131,29 @@ def edit_data_form(selected_indices):
 
     if st.button("Submit", type="primary"):
         for selected_index in selected_indices:
-            # Update SQL DB with edited values
-            row = edited_df.loc[selected_index]
-            cursor.execute(
-                UPDATE_WW_TRENDS_QUERY,
-                {
-                    "viral_activity_level": row["Viral_Activity_Level"],
-                    "location": row["Location"],
-                    "measure": row["measure"],
-                    "city": row["City"],
-                    "province": row["Province"],
-                },
-            )
-            # Update SQL DB with the log entry
-            cursor.execute(
-                INSERT_LOG_QUERY,
-                get_log_entry(
-                    get_username(),
-                    st.session_state.df_ww.loc[selected_index],
-                    edited_df.loc[selected_index],
-                    "Water Wastewater Trends",
-                ),
-            )
+            with get_cursor() as cursor:
+                # Update SQL DB with edited values
+                row = edited_df.loc[selected_index]
+                cursor.execute(
+                    UPDATE_WW_TRENDS_QUERY,
+                    {
+                        "viral_activity_level": row["Viral_Activity_Level"],
+                        "location": row["Location"],
+                        "measure": row["measure"],
+                        "city": row["City"],
+                        "province": row["Province"],
+                    },
+                )
+                # Update SQL DB with the log entry
+                cursor.execute(
+                    INSERT_LOG_QUERY,
+                    get_log_entry(
+                        get_username(),
+                        st.session_state.df_ww.loc[selected_index],
+                        edited_df.loc[selected_index],
+                        "Water Wastewater Trends",
+                    ),
+                )
             # Update the dataframe with the edited values
             st.session_state.df_ww.loc[selected_index, "Viral_Activity_Level"] = (
                 edited_df.loc[selected_index, "Viral_Activity_Level"]
@@ -166,9 +165,10 @@ def edit_data_form(selected_indices):
 
 def app():
     if "df_ww" not in st.session_state:
-        cursor.execute(FETCH_WW_TRENDS_QUERY)
-        rows = [row.asDict() for row in cursor.fetchall()]
-        st.session_state.df_ww = pd.DataFrame(rows)
+        with get_cursor() as cursor:
+            cursor.execute(FETCH_WW_TRENDS_QUERY)
+            rows = [row.asDict() for row in cursor.fetchall()]
+            st.session_state.df_ww = pd.DataFrame(rows)
 
     if "measure" not in st.session_state:
         st.session_state.measure = "covN2"

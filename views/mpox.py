@@ -11,7 +11,6 @@ from utils import (
     get_username,
 )
 
-cursor = get_cursor()
 
 USER_CAN_EDIT = "WW" in get_user_info().get("groups")
 
@@ -37,28 +36,29 @@ def edit_data_form(selected_indices):
 
     if st.button("Submit", type="primary"):
         for selected_index in selected_indices:
-            # Update SQL DB with the edited values
-            row = edited_df.loc[selected_index]
-            cursor.execute(
-                UPDATE_MPOX_QUERY,
-                {
-                    "g2r_label": row["g2r_label"],
-                    "location": row["Location"],
-                    "epi_week": float(row["EpiWeek"]),
-                    "epi_year": float(row["EpiYear"]),
-                    "week_start": row["Week_start"],
-                },
-            )
-            # Update SQL DB with the log entry
-            cursor.execute(
-                INSERT_LOG_QUERY,
-                get_log_entry(
-                    get_username(),
-                    st.session_state.df_mpox.loc[selected_index],
-                    edited_df.loc[selected_index],
-                    "Mpox Trends",
-                ),
-            )
+            with get_cursor() as cursor:
+                # Update SQL DB with the edited values
+                row = edited_df.loc[selected_index]
+                cursor.execute(
+                    UPDATE_MPOX_QUERY,
+                    {
+                        "g2r_label": row["g2r_label"],
+                        "location": row["Location"],
+                        "epi_week": float(row["EpiWeek"]),
+                        "epi_year": float(row["EpiYear"]),
+                        "week_start": row["Week_start"],
+                    },
+                )
+                # Update SQL DB with the log entry
+                cursor.execute(
+                    INSERT_LOG_QUERY,
+                    get_log_entry(
+                        get_username(),
+                        st.session_state.df_mpox.loc[selected_index],
+                        edited_df.loc[selected_index],
+                        "Mpox Trends",
+                    ),
+                )
             # Update local DataFrame with the edited values
             st.session_state.df_mpox.loc[selected_index, "g2r_label"] = edited_df.loc[
                 selected_index, "g2r_label"
@@ -70,10 +70,10 @@ def edit_data_form(selected_indices):
 
 def app():
     if "df_mpox" not in st.session_state:
-        cursor.execute(FETCH_MPOX_QUERY)
-        rows = [row.asDict() for row in cursor.fetchall()]
-        st.session_state.df_mpox = pd.DataFrame(rows)
-        print(st.session_state.df_mpox.dtypes)
+        with get_cursor() as cursor:
+            cursor.execute(FETCH_MPOX_QUERY)
+            rows = [row.asDict() for row in cursor.fetchall()]
+            st.session_state.df_mpox = pd.DataFrame(rows)
 
     # Create a dataframe where only a single-row is selectable
     selected_rows = st.dataframe(

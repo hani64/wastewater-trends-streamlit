@@ -10,8 +10,6 @@ from utils import (
     get_username
 )
 
-cursor = get_cursor()
-
 
 @st.dialog("Change Row Data")
 def edit_data_form(selected_indices):
@@ -47,29 +45,30 @@ def edit_data_form(selected_indices):
 
     if st.button("Submit", type="primary"):
         for selected_index in selected_indices:
-            # Update SQL DB with the edited values
-            row = edited_df.loc[selected_index]
-            cursor.execute(
-                UPDATE_LARGE_JUMPS_QUERY,
-                {
-                    "action_item": row["actionItem"],
-                    "site_id": row["siteID"],
-                    "dataset_id": row["datasetID"],
-                    "measure": row["measure"],
-                    "previous_obs_dt": row["previousObsDT"],
-                    "latest_obs_dt": row["latestObsDT"],
-                },
-            )
-            # Update SQL DB with the log entry
-            cursor.execute(
-                INSERT_LOG_QUERY,
-                get_log_entry(
-                    get_username(),
-                    st.session_state.df_large_jumps.loc[selected_index],
-                    edited_df.loc[selected_index],
-                    "Large Jumps",
-                ),
-            )
+            with get_cursor() as cursor:
+                # Update SQL DB with the edited values
+                row = edited_df.loc[selected_index]
+                cursor.execute(
+                    UPDATE_LARGE_JUMPS_QUERY,
+                    {
+                        "action_item": row["actionItem"],
+                        "site_id": row["siteID"],
+                        "dataset_id": row["datasetID"],
+                        "measure": row["measure"],
+                        "previous_obs_dt": row["previousObsDT"],
+                        "latest_obs_dt": row["latestObsDT"],
+                    },
+                )
+                # Update SQL DB with the log entry
+                cursor.execute(
+                    INSERT_LOG_QUERY,
+                    get_log_entry(
+                        get_username(),
+                        st.session_state.df_large_jumps.loc[selected_index],
+                        edited_df.loc[selected_index],
+                        "Large Jumps",
+                    ),
+                )
             # Update local DataFrame with the edited values
             st.session_state.df_large_jumps.loc[selected_index, "actionItem"] = (
                 edited_df.loc[selected_index, "actionItem"]
@@ -81,9 +80,10 @@ def edit_data_form(selected_indices):
 
 def app():
     if "df_large_jumps" not in st.session_state:
-        cursor.execute(FETCH_LARGE_JUMPS_QUERY)
-        rows = [row.asDict() for row in cursor.fetchall()]
-        st.session_state.df_large_jumps = pd.DataFrame(rows)
+        with get_cursor() as cursor:
+            cursor.execute(FETCH_LARGE_JUMPS_QUERY)
+            rows = [row.asDict() for row in cursor.fetchall()]
+            st.session_state.df_large_jumps = pd.DataFrame(rows)
 
     # Filter the dataframe based on datasetID
     sites = st.session_state.df_large_jumps["datasetID"].unique()
