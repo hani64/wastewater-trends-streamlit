@@ -83,7 +83,6 @@ def edit_data_form(selected_indices):
 def app():
     if "df_large_jumps" not in st.session_state:
         with get_cursor() as cursor:
-            cursor.fetchall_arrow
             cursor.execute(FETCH_LARGE_JUMPS_QUERY)
             rows = [row.asDict() for row in cursor.fetchall()]
             st.session_state.df_large_jumps = pd.DataFrame(rows)
