@@ -5,11 +5,13 @@ from utils import (
     FETCH_LARGE_JUMPS_QUERY,
     UPDATE_LARGE_JUMPS_QUERY,
     INSERT_LOG_QUERY,
+    can_user_edit,
     get_cursor,
     get_log_entry,
     get_username
 )
 
+USER_CAN_EDIT = can_user_edit()
 
 @st.dialog("Change Row Data")
 def edit_data_form(selected_indices):
@@ -81,6 +83,7 @@ def edit_data_form(selected_indices):
 def app():
     if "df_large_jumps" not in st.session_state:
         with get_cursor() as cursor:
+            cursor.fetchall_arrow
             cursor.execute(FETCH_LARGE_JUMPS_QUERY)
             rows = [row.asDict() for row in cursor.fetchall()]
             st.session_state.df_large_jumps = pd.DataFrame(rows)
@@ -105,8 +108,8 @@ def app():
         filtered_df,
         use_container_width=True,
         hide_index=True,
-        selection_mode="multi-row",
-        on_select="rerun",
+        selection_mode="multi-row" if USER_CAN_EDIT else None,
+        on_select="rerun" if USER_CAN_EDIT else "ignore",
         column_config={
             "latestObsDT": st.column_config.DatetimeColumn(
                 format="YYYY-MM-DD",
@@ -118,7 +121,7 @@ def app():
     )
 
     # Get the index of the selected row, iff a row is selected
-    if selected_rows.selection.get("rows", []):
+    if USER_CAN_EDIT and selected_rows.selection.get("rows", []):
         if st.button("Edit Selected Row(s)", type="primary"):
             edit_data_form(selected_rows.selection.rows)
 

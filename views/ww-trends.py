@@ -6,9 +6,9 @@ from utils import (
     FETCH_WW_TRENDS_QUERY,
     INSERT_LOG_QUERY,
     UPDATE_WW_TRENDS_QUERY,
+    can_user_edit,
     get_cursor,
     get_log_entry,
-    get_user_info,
     get_username,
 )
 
@@ -22,8 +22,7 @@ COLOR_MAP = {
     "NA2": "#A8A8A8",
 }
 
-USER_CAN_EDIT = "WW" in get_user_info().get("groups")
-
+USER_CAN_EDIT = can_user_edit()
 
 def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
     df = df[df["measure"] == measure]

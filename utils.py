@@ -161,6 +161,13 @@ def get_username() -> str:
         return "anon"
     return user_info.get("user")
 
+def can_user_edit():
+    if os.getenv("DEVELOPMENT"):
+        return True
+    if 'is_editor' not in st.session_state:
+        st.session_state.is_editor = "WW" in get_user_info().get("groups")
+    return st.session_state.is_editor
+
 def get_log_entry(
     username: str, old_data: pd.DataFrame, new_data: pd.DataFrame, page: str
 ) -> dict[str, str]:

@@ -5,14 +5,14 @@ from utils import (
     FETCH_MPOX_QUERY,
     UPDATE_MPOX_QUERY,
     INSERT_LOG_QUERY,
+    can_user_edit,
     get_cursor,
-    get_user_info,
     get_log_entry,
     get_username,
 )
 
 
-USER_CAN_EDIT = "WW" in get_user_info().get("groups")
+USER_CAN_EDIT = can_user_edit()
 
 
 @st.dialog("Change Row Data")
