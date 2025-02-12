@@ -12,6 +12,7 @@ LARGE_JUMPS_TABLE = os.getenv("LARGE_JUMPS_TABLE")
 MPOX_TABLE = os.getenv("MPOX_TABLE")
 WW_TRENDS_TABLE = os.getenv("WW_TRENDS_TABLE")
 LOGS_TABLE = os.getenv("LOGS_TABLE")
+LATEST_MEASURES_TABLE = os.getenv("LATEST_MEASURES_TABLE")
 
 FETCH_LARGE_JUMPS_QUERY = f"""
     SELECT
@@ -113,6 +114,25 @@ UPDATE_WW_TRENDS_QUERY = f"""
     AND Province = %(province)s
 """
 
+FETCH_LATEST_MEASURES_QUERY = f"""
+    SELECT
+        name,
+        healthReg,
+        siteID,
+        datasetID,
+        measure,
+        previousObs,
+        latestObs,
+        previousObsDT,
+        latestObsDT,
+        previousReportDT,
+        latestReportDT,
+        sampleID_previous,
+        sampleID_latest
+    FROM
+        {LATEST_MEASURES_TABLE}
+"""
+
 
 def get_db_connection():
     if 'db_connection' not in st.session_state:
@@ -126,6 +146,7 @@ def get_db_connection():
 
 def get_cursor():
     conn = get_db_connection()
+    print("Created new cursor")
     return conn.cursor()
 
 def get_user_info() -> dict:
@@ -162,6 +183,4 @@ def get_log_entry(
     }
 
     # return log entry
-    print(log_entry)
-    print(get_user_info())
     return log_entry
