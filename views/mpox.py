@@ -70,10 +70,13 @@ def edit_data_form(selected_indices):
 
 def app():
     if "df_mpox" not in st.session_state:
-        with get_cursor() as cursor:
-            cursor.execute(FETCH_MPOX_QUERY)
-            rows = [row.asDict() for row in cursor.fetchall()]
-            st.session_state.df_mpox = pd.DataFrame(rows)
+        with st.spinner(
+            "If the data cluster is cold starting, this may take up to 5 minutes", show_time=True
+        ):
+            with get_cursor() as cursor:
+                cursor.execute(FETCH_MPOX_QUERY)
+                rows = [row.asDict() for row in cursor.fetchall()]
+                st.session_state.df_mpox = pd.DataFrame(rows)
 
     # Create a dataframe where only a single-row is selectable
     selected_rows = st.dataframe(

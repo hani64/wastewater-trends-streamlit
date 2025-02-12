@@ -24,6 +24,7 @@ COLOR_MAP = {
 
 USER_CAN_EDIT = can_user_edit()
 
+
 def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
     df = df[df["measure"] == measure]
 
@@ -164,16 +165,20 @@ def edit_data_form(selected_indices):
 
 def app():
     if "df_ww" not in st.session_state:
-        with get_cursor() as cursor:
-            cursor.execute(FETCH_WW_TRENDS_QUERY)
-            rows = [row.asDict() for row in cursor.fetchall()]
-            st.session_state.df_ww = pd.DataFrame(rows)
+        with st.spinner(
+            "If the data cluster is cold starting, this may take up to 5 minutes",
+            show_time=True,
+        ):
+            with get_cursor() as cursor:
+                cursor.execute(FETCH_WW_TRENDS_QUERY)
+                rows = [row.asDict() for row in cursor.fetchall()]
+                st.session_state.df_ww = pd.DataFrame(rows)
 
     if "measure" not in st.session_state:
         st.session_state.measure = "covN2"
 
     left, right = st.columns([4, 1], vertical_alignment="center")
-    
+
     left.plotly_chart(
         create_sunburst_graph(st.session_state.df_ww, st.session_state.measure),
         use_container_width=True,

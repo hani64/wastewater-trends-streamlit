@@ -1,4 +1,3 @@
-import os
 import pandas as pd
 import streamlit as st
 
@@ -7,10 +6,13 @@ from utils import get_cursor, FETCH_LATEST_MEASURES_QUERY
 
 def app():
     if "df_latest_obs" not in st.session_state:
-        with get_cursor() as cursor:
-            cursor.execute(FETCH_LATEST_MEASURES_QUERY)
-            rows = [row.asDict() for row in cursor.fetchall()]
-            st.session_state.df_latest_obs = pd.DataFrame(rows)
+        with st.spinner(
+            "If the data cluster is cold starting, this may take up to 5 minutes", show_time=True
+        ):
+            with get_cursor() as cursor:
+                cursor.execute(FETCH_LATEST_MEASURES_QUERY)
+                rows = [row.asDict() for row in cursor.fetchall()]
+                st.session_state.df_latest_obs = pd.DataFrame(rows)
 
     # Filter the dataframe based on site names
     sites = st.session_state.df_latest_obs["name"].unique()

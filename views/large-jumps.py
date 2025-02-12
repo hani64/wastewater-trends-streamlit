@@ -114,10 +114,13 @@ def edit_data_form(selected_indices):
 
 def app():
     if "df_large_jumps" not in st.session_state:
-        with get_cursor() as cursor:
-            cursor.execute(FETCH_LARGE_JUMPS_QUERY)
-            rows = [row.asDict() for row in cursor.fetchall()]
-            st.session_state.df_large_jumps = pd.DataFrame(rows)
+        with st.spinner(
+            "If the data cluster is cold starting, this may take up to 5 minutes", show_time=True
+        ):
+            with get_cursor() as cursor:
+                cursor.execute(FETCH_LARGE_JUMPS_QUERY)
+                rows = [row.asDict() for row in cursor.fetchall()]
+                st.session_state.df_large_jumps = pd.DataFrame(rows)
 
     # Filter the dataframe based on datasetID
     sites = st.session_state.df_large_jumps["datasetID"].unique()
