@@ -33,7 +33,7 @@ wastewater-trends-streamlit/
 git clone https://github.com/PHACDataHub/wastewater-trends-streamlit.git
 cd wastewater-trends-streamlit
 python -m venv .venv
-source .venv/bin/activate
+.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 ## 🔧 Configuration
