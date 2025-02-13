@@ -1,4 +1,4 @@
-# Wastewater Trends Dashboard
+# Wastewater Data Validation App 
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://posit-connect-dv.phac-aspc.gc.ca/wastewater-KeyMetrics/) [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
@@ -22,7 +22,7 @@ wastewater-trends-streamlit/
 │   ├── latest-measures.py    # Handles the "Latest Measures" page
 │   ├── mpox.py               # Handles the "Mpox Trends" page
 │   ├── ww-trends.py          # Handles the "Wastewater Trends" page
-├── blob_utils.py             # Shared util functions
+├── utils.py                  # Shared util functions
 ├── .env                      # Environment configuration
 └── requirements.txt          # Dependencies
 ```
@@ -42,9 +42,19 @@ Create a `.env` file in the project root:
 
 
 ```ini
-AZURE_BLOB_CONNECTION_STRING=your_connection_string
-ACCOUNT_URL=your_account_url
-CLIENT_ID=your_client_id
+# These values are available through ADB workspace
+ADB_INSTANCE_NAME = ""
+ADB_HTTP_PATH = ""
+ADB_API_KEY = ""
+
+# the names of the catalog tables used within each of the pages
+WW_TRENDS_TABLE = ""
+MPOX_TABLE = ""
+LARGE_JUMPS_TABLE = ""
+LOGS_TABLE = ""
+LATEST_MEASURES_TABLE = ""
+
+DEVELOPMENT = "TRUE" # Only add this value in your dev environment
 ```
 
 ## 📈 Usage
@@ -53,13 +63,14 @@ CLIENT_ID=your_client_id
 
 ## 🔍 Troubleshooting
 
-Common issues:
+#### Common issues:
 
-1. **Azure Connection Issues**
-   - Verify credentials in `.env`
-   - Try using the commented out connection method that uses `ManagedIdentityCredential` and `CLIENT_ID` instead of `AZURE_BLOB_CONNECTION_STRING`
-   - Check that you are connected to the internal VPN
-   - Ensure proper container permissions
+1. **Cold Cluster Startup:**  
+   The first data load may take up to 5 minutes if the data cluster is cold. Please allow extra time on startup.
 
-2. **Data Loading Errors**
-   - Check file format matches schema
+2. **Configuration Errors:**  
+   - Ensure your `.env` file is set up correctly with the proper values for `ADB_INSTANCE_NAME`, `ADB_HTTP_PATH`, and `ADB_API_KEY`.  
+   - Verify that the table names in the `.env` (e.g. `WW_TRENDS_TABLE`, `MPOX_TABLE`, etc.) are correct.
+
+3. **Permission Issues:**  
+   If you cannot modify data or load certain pages, check your permissions. In development mode, The `DEVELOPMENT` flag should be added to your `.env`.
