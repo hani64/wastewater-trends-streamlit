@@ -8,6 +8,7 @@ from utils import (
     UPDATE_WW_TRENDS_QUERY,
     can_user_edit,
     get_cursor,
+    trigger_job_run,
     get_log_entry,
     get_username,
 )
@@ -154,6 +155,7 @@ def edit_data_form(selected_indices):
                         "Water Wastewater Trends",
                     ),
                 )
+            trigger_job_run("ww-trends")
             # Update the dataframe with the edited values
             st.session_state.df_ww.loc[selected_index, "Viral_Activity_Level"] = (
                 edited_df.loc[selected_index, "Viral_Activity_Level"]

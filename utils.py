@@ -5,6 +5,7 @@ from databricks import sql
 import pandas as pd
 import streamlit as st
 import json
+import requests
 
 load_dotenv()
 
@@ -135,19 +136,37 @@ FETCH_LATEST_MEASURES_QUERY = f"""
 
 
 def get_db_connection():
-    if 'db_connection' not in st.session_state:
+    if "db_connection" not in st.session_state:
         st.session_state.db_connection = sql.connect(
             server_hostname=os.getenv("ADB_INSTANCE_NAME"),
-            http_path=os.getenv("ADB_HTTP_PATH"), 
-            access_token=os.getenv("ADB_API_KEY")
+            http_path=os.getenv("ADB_HTTP_PATH"),
+            access_token=os.getenv("ADB_API_KEY"),
         )
         print("Created new database connection")
     return st.session_state.db_connection
+
 
 def get_cursor():
     conn = get_db_connection()
     print("Created new cursor")
     return conn.cursor()
+
+
+def trigger_job_run(page: str):
+    # MAP page to job_id
+    page_to_id = {"ww-trends": os.getenv("WW_JOB_ID"), "mpox": os.getenv("MPOX_JOB_ID")}
+
+    url = f"{os.getenv("ADB_INSTANCE_NAME")}/api/2.2/jobs/run-now"
+    payload = {"job_id": page_to_id[page]}
+
+    # Send the POST request
+    response = requests.post(url, json=payload)
+
+    # Optionally, handle possible HTTP errors
+    response.raise_for_status()
+
+    return response.status_code
+
 
 def get_user_info() -> dict:
     user_info_json = st.context.headers.get("Rstudio-Connect-Credentials")
@@ -155,18 +174,21 @@ def get_user_info() -> dict:
         return None
     return json.loads(user_info_json)
 
+
 def get_username() -> str:
     user_info = get_user_info()
     if user_info is None:
         return "anon"
     return user_info.get("user")
 
+
 def can_user_edit():
     if os.getenv("DEVELOPMENT"):
         return True
-    if 'is_editor' not in st.session_state:
+    if "is_editor" not in st.session_state:
         st.session_state.is_editor = "WW" in get_user_info().get("groups")
     return st.session_state.is_editor
+
 
 def get_log_entry(
     username: str, old_data: pd.DataFrame, new_data: pd.DataFrame, page: str
