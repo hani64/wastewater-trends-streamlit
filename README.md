@@ -33,7 +33,8 @@ wastewater-trends-streamlit/
 git clone https://github.com/PHACDataHub/wastewater-trends-streamlit.git
 cd wastewater-trends-streamlit
 python -m venv .venv
-.venv\Scripts\activate
+source .venv/bin/activate # If on Linux
+.venv\Scripts\activate # If on Windows
 pip install -r requirements.txt
 ```
 ## 🔧 Configuration
@@ -47,12 +48,16 @@ ADB_INSTANCE_NAME = ""
 ADB_HTTP_PATH = ""
 ADB_API_KEY = ""
 
-# the names of the catalog tables used within each of the pages
+# The names of the catalog tables used within each of the pages
 WW_TRENDS_TABLE = ""
 MPOX_TABLE = ""
 LARGE_JUMPS_TABLE = ""
 LOGS_TABLE = ""
 LATEST_MEASURES_TABLE = ""
+
+# The job id of the jobs used to push data from ADB catalog to prod blob
+WW_JOB_ID = ""
+MPOX_JOB_ID = ""
 
 DEVELOPMENT = "TRUE" # Only add this value in your dev environment
 ```

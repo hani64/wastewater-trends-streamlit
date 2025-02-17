@@ -183,7 +183,7 @@ def get_username() -> str:
 
 
 def can_user_edit():
-    if os.getenv("DEVELOPMENT"):
+    if os.getenv("DEVELOPMENT") == "TRUE":
         return True
     if "is_editor" not in st.session_state:
         st.session_state.is_editor = "WW" in get_user_info().get("groups")
