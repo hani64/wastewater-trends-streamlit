@@ -6,6 +6,7 @@ pages = {
         st.Page("./views/mpox.py", title="Mpox Trends", icon="🦠"),
         st.Page("./views/latest-measures.py", title="Latest Measures", icon="🆕"),
         st.Page("./views/large-jumps.py", title="Large Jumps", icon="⚠️"),
+        st.Page("./views/admin-page.py", title="Admin Page", icon="📝")
     ],
 }
 

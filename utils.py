@@ -134,6 +134,16 @@ FETCH_LATEST_MEASURES_QUERY = f"""
         {LATEST_MEASURES_TABLE}
 """
 
+DELETE_LOG_QUERY = f"""
+    DELETE FROM {LOGS_TABLE}
+    WHERE
+    User = %(User)s
+    AND Time = %(Time)s
+    AND Page = %(Page)s
+    AND siteID = %(siteID)s
+    AND Measure = %(Measure)s
+"""
+
 
 def get_db_connection():
     if "db_connection" not in st.session_state:
@@ -158,9 +168,13 @@ def trigger_job_run(page: str):
 
     url = f"{os.getenv("ADB_INSTANCE_NAME")}/api/2.2/jobs/run-now"
     payload = {"job_id": page_to_id[page]}
+    headers = {
+        "Authorization": f"Bearer {os.getenv('ADB_API_KEY')}",
+        "Content-Type": "application/json"
+    }
 
     # Send the POST request
-    response = requests.post(url, json=payload)
+    response = requests.post(url, json=payload, headers=headers)
 
     # Optionally, handle possible HTTP errors
     response.raise_for_status()
@@ -186,7 +200,7 @@ def can_user_edit():
     if os.getenv("DEVELOPMENT") == "TRUE":
         return True
     if "is_editor" not in st.session_state:
-        st.session_state.is_editor = "WW" in get_user_info().get("groups")
+        st.session_state.is_editor = "wastewater" in get_user_info().get("groups")
     return st.session_state.is_editor
 
 

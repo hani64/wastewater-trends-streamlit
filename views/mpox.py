@@ -61,11 +61,11 @@ def edit_data_form(selected_indices):
                         "Mpox Trends",
                     ),
                 )
-            trigger_job_run("ww-trends")
             # Update local DataFrame with the edited values
             st.session_state.df_mpox.loc[selected_index, "g2r_label"] = edited_df.loc[
                 selected_index, "g2r_label"
             ]
+        trigger_job_run("mpox")
 
         print("dialog triggered re-render")
         st.rerun()
