@@ -26,10 +26,15 @@ def edit_data_form(selected_indices):
         column_config={
             "g2r_label": st.column_config.SelectboxColumn(
                 "g2r_label",
-                options=["Consistent Detection", "No Detection"],
+                options=[
+                    "Consistent Detection",
+                    "Intermittent Detection",
+                    "No Detection",
+                    "No Recent Data",
+                ],
                 required=True,
             ),
-            "EpiYear": st.column_config.TextColumn()
+            "EpiYear": st.column_config.TextColumn(),
         },
         use_container_width=True,
         hide_index=True,
@@ -74,7 +79,8 @@ def edit_data_form(selected_indices):
 def app():
     if "df_mpox" not in st.session_state:
         with st.spinner(
-            "If the data cluster is cold starting, this may take up to 5 minutes", show_time=True
+            "If the data cluster is cold starting, this may take up to 5 minutes",
+            show_time=True,
         ):
             with get_cursor() as cursor:
                 cursor.execute(FETCH_MPOX_QUERY)
@@ -90,7 +96,7 @@ def app():
         hide_index=True,
         column_config={
             "EpiYear": st.column_config.TextColumn(),
-        }
+        },
     )
 
     # Get the index of the selected row, iff a row is selected
