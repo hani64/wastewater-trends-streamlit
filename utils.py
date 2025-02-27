@@ -14,6 +14,7 @@ MPOX_TABLE = os.getenv("MPOX_TABLE")
 WW_TRENDS_TABLE = os.getenv("WW_TRENDS_TABLE")
 LOGS_TABLE = os.getenv("LOGS_TABLE")
 LATEST_MEASURES_TABLE = os.getenv("LATEST_MEASURES_TABLE")
+ALLSITES_TABLE = os.getenv("ALLSITES_TABLE")
 
 FETCH_LARGE_JUMPS_QUERY = f"""
     SELECT
@@ -144,6 +145,24 @@ DELETE_LOG_QUERY = f"""
     AND Measure = %(Measure)s
 """
 
+FETCH_BEFORE_LARGE_JUMP_QUERY = f"""
+    SELECT * FROM {ALLSITES_TABLE}
+    WHERE siteID = %(siteID)s 
+    AND measure = %(Measure)s 
+    AND collDT < CAST(%(previousObsDT)s AS DATE)
+    ORDER BY collDT DESC 
+    LIMIT 4
+"""
+
+FETCH_AFTER_LARGE_JUMP_QUERY = f"""
+    SELECT * FROM {ALLSITES_TABLE}
+    WHERE siteID = %(siteID)s 
+    AND measure = %(Measure)s 
+    AND collDT > CAST(%(latestObsDT)s AS DATE)
+    ORDER BY collDT ASC 
+    LIMIT 1
+"""
+
 
 def get_db_connection():
     if "db_connection" not in st.session_state:
@@ -170,7 +189,7 @@ def trigger_job_run(page: str):
     payload = {"job_id": page_to_id[page]}
     headers = {
         "Authorization": f"Bearer {os.getenv('ADB_API_KEY')}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
 
     # Send the POST request

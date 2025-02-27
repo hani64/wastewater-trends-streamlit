@@ -5,6 +5,8 @@ import plotly.graph_objects as go
 from utils import (
     FETCH_LARGE_JUMPS_QUERY,
     UPDATE_LARGE_JUMPS_QUERY,
+    FETCH_AFTER_LARGE_JUMP_QUERY,
+    FETCH_BEFORE_LARGE_JUMP_QUERY,
     INSERT_LOG_QUERY,
     can_user_edit,
     get_cursor,
@@ -16,16 +18,74 @@ USER_CAN_EDIT = can_user_edit()
 
 
 def create_jump_plot(row):
-    # Create figure
-    fig = go.Figure()
+    # Prepare lists for the historical points (before previousObsDT)
+    x_hist, y_hist = [], []
 
-    # Add points and connecting line
+    # Fetch the past observations
+    with get_cursor() as cursor:
+        cursor.execute(
+            FETCH_BEFORE_LARGE_JUMP_QUERY,
+            {
+                "siteID": row["siteID"],
+                "Measure": row["measure"],
+                "previousObsDT": row["previousObsDT"],
+            },
+        )
+        hist_rows = cursor.fetchall()
+    # The query returns points in descending order; reverse to chronological order.
+    hist_rows = list(reversed(hist_rows))
+    for hist_row in hist_rows:
+        x_hist.append(hist_row["collDT"])
+        y_hist.append(hist_row["valavg"])
+
+    # Fetch the future observation if it exists
+    with get_cursor() as cursor:
+        cursor.execute(
+            FETCH_AFTER_LARGE_JUMP_QUERY,
+            {
+                "siteID": row["siteID"],
+                "Measure": row["measure"],
+                "latestObsDT": row["latestObsDT"],
+            },
+        )
+        fut_row = cursor.fetchone()
+    # Correctly assign fut_row values if available
+    if fut_row is not None:
+        x_fut = [fut_row["collDT"]]
+        y_fut = [fut_row["valavg"]]
+    else:
+        x_fut, y_fut = [], []
+
+    # Prepare the jump segment points: previousObs and latestObs
+    x_jump = [row["previousObsDT"], row["latestObsDT"]]
+    y_jump = [row["previousObs"], row["latestObs"]]
+
+    # Combine values for rendering entire plot
+    all_x = x_hist + x_jump + x_fut
+    all_y = y_hist + y_jump + y_fut
+
+    # Create Plotly figure and add historical trace (default styling)
+    fig = go.Figure()
     fig.add_trace(
         go.Scatter(
-            x=[row["previousObsDT"], row["latestObsDT"]],
-            y=[row["previousObs"], row["latestObs"]],
+            x=all_x,
+            y=all_y,
             mode="lines+markers",
-            name=row["measure"],
+            name="History",
+            text=[f"{val:.2f}" for val in all_y],
+            hoverinfo="text",
+        )
+    )
+
+    # Add jump trace with red line and markers
+    fig.add_trace(
+        go.Scatter(
+            x=x_jump,
+            y=y_jump,
+            mode="lines+markers",
+            name="Jump",
+            line=dict(color="red", width=2),
+            marker=dict(color="red", size=8),
             text=[
                 f"Previous: {row['previousObs']:.2f}",
                 f"Latest: {row['latestObs']:.2f}",
@@ -34,13 +94,17 @@ def create_jump_plot(row):
         )
     )
 
-    # Update layout
+    # Set x-axis ticks to only show the points
     fig.update_layout(
         title=f"Large Jump for [{row['siteID']}] [{row['measure']}]",
         xaxis_title="Date",
         yaxis_title="Value",
         height=400,
-        xaxis=dict(tickformat="%Y-%m-%d", dtick="D1"),  # Show daily ticks
+        xaxis=dict(
+            tickmode="array",
+            tickvals=all_x,
+            ticktext=[str(dt) for dt in all_x],
+        ),
     )
     return fig
 
@@ -115,7 +179,8 @@ def edit_data_form(selected_indices):
 def app():
     if "df_large_jumps" not in st.session_state:
         with st.spinner(
-            "If the data cluster is cold starting, this may take up to 5 minutes", show_time=True
+            "If the data cluster is cold starting, this may take up to 5 minutes",
+            show_time=True,
         ):
             with get_cursor() as cursor:
                 cursor.execute(FETCH_LARGE_JUMPS_QUERY)
@@ -198,7 +263,6 @@ st.markdown(
         | `siteID`          | The site ID.                                                                                    |
         | `datasetID`       | The dataset ID.                                                                                 |
         | `measure`         | The measure name.                                                                               |
-        | `fraction`        | `liq` or `sol`                                                                                  |
         | `previousObs`     | The measure value that was observed before `latestObs`.                                         |
         | `latestObs`       | The measure value that was identified as a `largeJump` or `newMax`.                             |
         | `previousObsDT`   | The date at which the `previousObs` was observed.                                               |
