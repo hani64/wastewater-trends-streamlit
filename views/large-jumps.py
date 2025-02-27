@@ -17,7 +17,7 @@ from utils import (
 USER_CAN_EDIT = can_user_edit()
 
 
-def create_jump_plot(row):
+def create_jump_plot(row, log_scale):
     # Prepare lists for the historical points (before previousObsDT)
     x_hist, y_hist = [], []
 
@@ -98,7 +98,7 @@ def create_jump_plot(row):
     fig.update_layout(
         title=f"Large Jump for [{row['siteID']}] [{row['measure']}]",
         xaxis_title="Date",
-        yaxis_title="Value",
+        yaxis=dict(title="Value", type="log" if log_scale else "linear"),
         height=400,
         xaxis=dict(
             tickmode="array",
@@ -223,9 +223,12 @@ def app():
     if USER_CAN_EDIT and selected_rows.selection.get("rows", []):
         if st.button("Edit Selected Row(s)", type="primary"):
             edit_data_form(selected_rows.selection.rows)
+
+        # checkbox widget for toggling log scale of plots
+        log_scale = st.checkbox("Use log scale", value=True)
         for idx in selected_rows.selection.rows:
             row_data = filtered_df.iloc[idx]
-            fig = create_jump_plot(row_data)
+            fig = create_jump_plot(row_data, log_scale)
             st.plotly_chart(fig, use_container_width=True)
 
 
