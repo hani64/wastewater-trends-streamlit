@@ -54,6 +54,7 @@ MPOX_TABLE = ""
 LARGE_JUMPS_TABLE = ""
 LOGS_TABLE = ""
 LATEST_MEASURES_TABLE = ""
+ALLSITES_TABLE = ""
 
 # The job id of the jobs used to push data from ADB catalog to prod blob
 WW_JOB_ID = ""
