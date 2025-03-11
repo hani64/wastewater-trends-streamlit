@@ -27,19 +27,25 @@ FETCH_LARGE_JUMPS_QUERY = f"""
         latestObsDT,
         alertType,
         actionItem
-    FROM
+    FROM 
         {LARGE_JUMPS_TABLE}
 """
 
 UPDATE_LARGE_JUMPS_QUERY = f"""
     UPDATE 
-    {LARGE_JUMPS_TABLE}
-    SET actionItem = %(action_item)s
-    WHERE siteID = %(site_id)s 
-    AND datasetID = %(dataset_id)s 
-    AND measure = %(measure)s
-    AND previousObsDT = %(previous_obs_dt)s
-    AND latestObsDT = %(latest_obs_dt)s
+        {LARGE_JUMPS_TABLE}
+    SET 
+        actionItem = %(action_item)s
+    WHERE 
+        siteID = %(site_id)s 
+    AND 
+        datasetID = %(dataset_id)s 
+    AND 
+        measure = %(measure)s
+    AND 
+        previousObsDT = %(previous_obs_dt)s
+    AND 
+        latestObsDT = %(latest_obs_dt)s
 """
 
 FETCH_LOG_QUERY = f"""
@@ -85,12 +91,18 @@ FETCH_MPOX_QUERY = f"""
 """
 
 UPDATE_MPOX_QUERY = f"""
-    UPDATE {MPOX_TABLE}
-    SET g2r_label = %(g2r_label)s
-    WHERE Location = %(location)s 
-    AND EpiYear = %(epi_year)s
-    AND EpiWeek = %(epi_week)s
-    AND Week_start = %(week_start)s
+    UPDATE 
+        {MPOX_TABLE}
+    SET 
+        g2r_label = %(g2r_label)s
+    WHERE 
+        Location = %(location)s 
+    AND 
+        EpiYear = %(epi_year)s
+    AND 
+        EpiWeek = %(epi_week)s
+    AND 
+        Week_start = %(week_start)s
 """
 
 FETCH_WW_TRENDS_QUERY = f"""
@@ -136,29 +148,42 @@ FETCH_LATEST_MEASURES_QUERY = f"""
 """
 
 DELETE_LOG_QUERY = f"""
-    DELETE FROM {LOGS_TABLE}
+    DELETE FROM 
+        {LOGS_TABLE}
     WHERE
-    User = %(User)s
-    AND Time = %(Time)s
-    AND Page = %(Page)s
-    AND siteID = %(siteID)s
-    AND Measure = %(Measure)s
+        User = %(User)s
+    AND 
+        Time = %(Time)s
+    AND 
+        Page = %(Page)s
+    AND 
+        siteID = %(siteID)s
+    AND 
+        Measure = %(Measure)s
 """
 
 FETCH_BEFORE_LARGE_JUMP_QUERY = f"""
-    SELECT * FROM {ALLSITES_TABLE}
-    WHERE siteID = %(siteID)s 
-    AND measure = %(Measure)s 
-    AND collDT < CAST(%(previousObsDT)s AS DATE)
+    SELECT * FROM 
+        {ALLSITES_TABLE}
+    WHERE 
+        siteID = %(siteID)s 
+    AND 
+        measure = %(Measure)s 
+    AND 
+        collDT < CAST(%(previousObsDT)s AS DATE)
     ORDER BY collDT DESC 
     LIMIT 4
 """
 
 FETCH_AFTER_LARGE_JUMP_QUERY = f"""
-    SELECT * FROM {ALLSITES_TABLE}
-    WHERE siteID = %(siteID)s 
-    AND measure = %(Measure)s 
-    AND collDT > CAST(%(latestObsDT)s AS DATE)
+    SELECT * FROM 
+        {ALLSITES_TABLE}
+    WHERE 
+        siteID = %(siteID)s 
+    AND 
+        measure = %(Measure)s 
+    AND 
+        collDT > CAST(%(latestObsDT)s AS DATE)
     ORDER BY collDT ASC 
     LIMIT 1
 """
