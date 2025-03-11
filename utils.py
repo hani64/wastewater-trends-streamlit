@@ -29,6 +29,8 @@ FETCH_LARGE_JUMPS_QUERY = f"""
         actionItem
     FROM 
         {LARGE_JUMPS_TABLE}
+    WHERE 
+        CAST(latestObsDT AS DATE) > DATE_SUB(CURRENT_DATE(), 30)
 """
 
 UPDATE_LARGE_JUMPS_QUERY = f"""
