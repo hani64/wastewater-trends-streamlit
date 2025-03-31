@@ -161,7 +161,6 @@ def edit_data_form(selected_indices):
                 cursor.execute(
                     INSERT_LOG_QUERY,
                     get_log_entry(
-                        get_username(),
                         st.session_state.df_large_jumps.loc[selected_index],
                         edited_df.loc[selected_index],
                         "Large Jumps",

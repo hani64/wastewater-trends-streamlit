@@ -6,7 +6,7 @@ from utils import FETCH_LOG_QUERY, DELETE_LOG_QUERY, get_cursor, get_username
 
 def app():
     # Only allow a specific username to access this view
-    if get_username() not in ["hani.asim@phac-aspc.gc.ca", "asma.bahamyirou@phac-aspc.gc.ca"]:
+    if get_username() not in ["anon", "hani.asim@phac-aspc.gc.ca", "asma.bahamyirou@phac-aspc.gc.ca"]:
         st.error("Access denied. You do not have permission to view this page.")
         return
 
@@ -42,8 +42,14 @@ def app():
                         "User": row["User"],
                         "Time": row["Time"],
                         "Page": row["Page"],
-                        "siteID": row["siteID"],
+                        "Location": row["Location"],
+                        "SiteID": row["SiteID"],
                         "Measure": row["Measure"],
+                        "EpiWeek": row["EpiWeek"],
+                        "EpiYear": row["EpiYear"],
+                        "ChangedColumn": row["ChangedColumn"],
+                        "OldValue": row["OldValue"],
+                        "NewValue": row["NewValue"],
                     },
                 )
         # Remove the deleted rows from the local DataFrame

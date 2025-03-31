@@ -55,9 +55,14 @@ FETCH_LOG_QUERY = f"""
         User,
         CAST(Time AS STRING),
         Page,
-        siteID,
+        Location,
+        SiteID,
         Measure,
-        Changes
+        EpiWeek,
+        EpiYear,
+        ChangedColumn,
+        OldValue,
+        NewValue
     FROM 
         {LOGS_TABLE}
 """
@@ -67,18 +72,44 @@ INSERT_LOG_QUERY = f"""
         User,
         Time,
         Page,
-        siteID,
+        Location,
+        SiteID,
         Measure,
-        Changes
+        EpiWeek,
+        EpiYear,
+        ChangedColumn,
+        OldValue,
+        NewValue
     )
     VALUES (
         %(User)s,
         %(Time)s,
         %(Page)s,
-        %(siteID)s,
+        %(Location)s,
+        %(SiteID)s,
         %(Measure)s,
-        %(Changes)s
+        %(EpiWeek)s,
+        %(EpiYear)s,
+        %(ChangedColumn)s,
+        %(OldValue)s,
+        %(NewValue)s
     )
+"""
+
+DELETE_LOG_QUERY = f"""
+    DELETE FROM 
+        {LOGS_TABLE}
+    WHERE User = %(User)s
+    AND Time = %(Time)s
+    AND Page = %(Page)s
+    AND Location = %(Location)s
+    AND SiteID = %(SiteID)s
+    AND Measure = %(Measure)s
+    AND EpiWeek = %(EpiWeek)s
+    AND EpiYear = %(EpiYear)s
+    AND ChangedColumn = %(ChangedColumn)s
+    AND OldValue = %(OldValue)s
+    AND NewValue = %(NewValue)s
 """
 
 FETCH_MPOX_QUERY = f"""
@@ -149,21 +180,6 @@ FETCH_LATEST_MEASURES_QUERY = f"""
         {LATEST_MEASURES_TABLE}
 """
 
-DELETE_LOG_QUERY = f"""
-    DELETE FROM 
-        {LOGS_TABLE}
-    WHERE
-        User = %(User)s
-    AND 
-        Time = %(Time)s
-    AND 
-        Page = %(Page)s
-    AND 
-        siteID = %(siteID)s
-    AND 
-        Measure = %(Measure)s
-"""
-
 FETCH_BEFORE_LARGE_JUMP_QUERY = f"""
     SELECT * FROM 
         {ALLSITES_TABLE}
@@ -209,6 +225,9 @@ def get_cursor():
 
 
 def trigger_job_run(page: str):
+    if os.getenv("DEVELOPMENT") == "TRUE":
+        return 200
+
     # MAP page to job_id
     page_to_id = {"ww-trends": os.getenv("WW_JOB_ID"), "mpox": os.getenv("MPOX_JOB_ID")}
 
@@ -251,25 +270,30 @@ def can_user_edit():
 
 
 def get_log_entry(
-    username: str, old_data: pd.DataFrame, new_data: pd.DataFrame, page: str
+    old_data: pd.DataFrame, new_data: pd.DataFrame, page: str
 ) -> dict[str, str]:
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Find the changes
-    changes = {
-        col: {"old": old_data[col], "new": new_data[col]}
-        for col in old_data.index
-        if old_data[col] != new_data[col]
-    }
-
     log_entry = {
-        "User": username,
+        "User": get_username(),
         "Time": current_time,
         "Page": page,
-        "siteID": old_data.get("siteID", "N/A"),
-        "Measure": old_data.get("measure", "N/A"),
-        "Changes": str(changes),
+        "Location": old_data.get("Location", "N/A"),
+        "SiteID": old_data.get("siteID", "N/A"),
+        "Measure": old_data.get("measure", "mpox" if page == "Mpox Trends" else "N/A"),
+        "EpiWeek": str(int(old_data.get("EpiWeek"))) if page == "Mpox Trends" else "N/A",
+        "EpiYear": str(int(old_data.get("EpiYear"))) if page == "Mpox Trends" else "N/A",
+        "ChangedColumn": "N/A",
+        "OldValue": "N/A",
+        "NewValue": "N/A",
     }
+
+    # Note this assumes at most only one column can be changed
+    for col in old_data.index:
+        if old_data[col] != new_data[col]:
+            log_entry["ChangedColumn"] = col
+            log_entry["OldValue"] = str(old_data[col])
+            log_entry["NewValue"] = str(new_data[col])
 
     # return log entry
     return log_entry
