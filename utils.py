@@ -224,7 +224,7 @@ def get_cursor():
     return conn.cursor()
 
 
-def trigger_job_run(page: str):
+def trigger_job_run(page: str, log_entries: list[dict] = None) -> int:
     if os.getenv("DEVELOPMENT") == "TRUE":
         return 200
 
@@ -232,7 +232,13 @@ def trigger_job_run(page: str):
     page_to_id = {"ww-trends": os.getenv("WW_JOB_ID"), "mpox": os.getenv("MPOX_JOB_ID")}
 
     url = f"{os.getenv("ADB_INSTANCE_NAME")}/api/2.2/jobs/run-now"
-    payload = {"job_id": page_to_id[page]}
+    payload = {
+        "job_id": page_to_id[page],
+        "job_parameters": {
+            "user_email": get_username(),
+            "changes": log_entries,
+        },
+    }
     headers = {
         "Authorization": f"Bearer {os.getenv('ADB_API_KEY')}",
         "Content-Type": "application/json",
@@ -257,7 +263,7 @@ def get_user_info() -> dict:
 def get_username() -> str:
     user_info = get_user_info()
     if user_info is None:
-        return "anon"
+        return "dev"
     return user_info.get("user")
 
 
@@ -281,8 +287,12 @@ def get_log_entry(
         "Location": old_data.get("Location", "N/A"),
         "SiteID": old_data.get("siteID", "N/A"),
         "Measure": old_data.get("measure", "mpox" if page == "Mpox Trends" else "N/A"),
-        "EpiWeek": str(int(old_data.get("EpiWeek"))) if page == "Mpox Trends" else "N/A",
-        "EpiYear": str(int(old_data.get("EpiYear"))) if page == "Mpox Trends" else "N/A",
+        "EpiWeek": (
+            str(int(old_data.get("EpiWeek"))) if page == "Mpox Trends" else "N/A"
+        ),
+        "EpiYear": (
+            str(int(old_data.get("EpiYear"))) if page == "Mpox Trends" else "N/A"
+        ),
         "ChangedColumn": "N/A",
         "OldValue": "N/A",
         "NewValue": "N/A",

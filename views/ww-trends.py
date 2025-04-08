@@ -131,6 +131,7 @@ def edit_data_form(selected_indices):
     )
 
     if st.button("Submit", type="primary"):
+        log_entries = []
         for selected_index in selected_indices:
             with get_cursor() as cursor:
                 # Update SQL DB with edited values
@@ -154,11 +155,16 @@ def edit_data_form(selected_indices):
                         "Water Wastewater Trends",
                     ),
                 )
+                log_entries.append(get_log_entry(
+                        st.session_state.df_mpox.loc[selected_index],
+                        edited_df.loc[selected_index],
+                        "Mpox Trends",
+                    ))
             # Update the dataframe with the edited values
             st.session_state.df_ww.loc[selected_index, "Viral_Activity_Level"] = (
                 edited_df.loc[selected_index, "Viral_Activity_Level"]
             )
-        trigger_job_run("ww-trends")
+        trigger_job_run("ww-trends", log_entries)
 
         print("dialog triggered re-render")
         st.rerun()
