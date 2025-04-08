@@ -236,7 +236,7 @@ def trigger_job_run(page: str, log_entries: list[dict] = None) -> int:
         "job_id": page_to_id[page],
         "job_parameters": {
             "user_email": get_username(),
-            "changes": log_entries,
+            "changes": json.dumps(log_entries),
         },
     }
     headers = {

@@ -128,9 +128,12 @@ def edit_data_form(selected_indices):
             "City",
             "Province",
         ),
+        key="edited_data_ww",
     )
 
-    if st.button("Submit", type="primary"):
+    if st.session_state.edited_data_ww["edited_rows"] and st.button(
+        "Submit", type="primary"
+    ):
         log_entries = []
         for selected_index in selected_indices:
             with get_cursor() as cursor:
@@ -155,11 +158,13 @@ def edit_data_form(selected_indices):
                         "Water Wastewater Trends",
                     ),
                 )
-                log_entries.append(get_log_entry(
+                log_entries.append(
+                    get_log_entry(
                         st.session_state.df_mpox.loc[selected_index],
                         edited_df.loc[selected_index],
                         "Mpox Trends",
-                    ))
+                    )
+                )
             # Update the dataframe with the edited values
             st.session_state.df_ww.loc[selected_index, "Viral_Activity_Level"] = (
                 edited_df.loc[selected_index, "Viral_Activity_Level"]

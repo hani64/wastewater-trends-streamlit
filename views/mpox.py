@@ -39,9 +39,12 @@ def edit_data_form(selected_indices):
         use_container_width=True,
         hide_index=True,
         disabled=("Location", "EpiYear", "EpiWeek", "Week_start"),
+        key="edited_data_mpox",
     )
 
-    if st.button("Submit", type="primary"):
+    if st.session_state.edited_data_mpox["edited_rows"] and st.button(
+        "Submit", type="primary"
+    ):
         log_entries = []
         for selected_index in selected_indices:
             with get_cursor() as cursor:
@@ -66,11 +69,13 @@ def edit_data_form(selected_indices):
                         "Mpox Trends",
                     ),
                 )
-                log_entries.append(get_log_entry(
+                log_entries.append(
+                    get_log_entry(
                         st.session_state.df_mpox.loc[selected_index],
                         edited_df.loc[selected_index],
                         "Mpox Trends",
-                    ))
+                    )
+                )
             # Update local DataFrame with the edited values
             st.session_state.df_mpox.loc[selected_index, "g2r_label"] = edited_df.loc[
                 selected_index, "g2r_label"
