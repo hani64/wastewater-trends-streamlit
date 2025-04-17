@@ -225,6 +225,7 @@ def get_cursor():
 
 
 def trigger_job_run(page: str, log_entries: list[dict] = None) -> int:
+    # do not run job if in development mode
     if os.getenv("DEVELOPMENT") == "TRUE":
         return 200
 

@@ -45,48 +45,54 @@ def edit_data_form(selected_indices):
     if st.session_state.edited_data_mpox["edited_rows"] and st.button(
         "Submit", type="primary"
     ):
-        log_entries = []
-        for selected_index in selected_indices:
-            with get_cursor() as cursor:
-                # Update SQL DB with the edited values
-                row = edited_df.loc[selected_index]
-                cursor.execute(
-                    UPDATE_MPOX_QUERY,
-                    {
-                        "g2r_label": row["g2r_label"],
-                        "location": row["Location"],
-                        "epi_week": float(row["EpiWeek"]),
-                        "epi_year": float(row["EpiYear"]),
-                        "week_start": row["Week_start"],
-                    },
-                )
-                # Update SQL DB with the log entry
-                cursor.execute(
-                    INSERT_LOG_QUERY,
-                    get_log_entry(
-                        st.session_state.df_mpox.loc[selected_index],
-                        edited_df.loc[selected_index],
-                        "Mpox Trends",
-                    ),
-                )
-                log_entries.append(
-                    get_log_entry(
-                        st.session_state.df_mpox.loc[selected_index],
-                        edited_df.loc[selected_index],
-                        "Mpox Trends",
+        with st.spinner('Submitting changes...'):
+            log_entries = []
+            for selected_index in selected_indices:
+                with get_cursor() as cursor:
+                    # Update SQL DB with the edited values
+                    row = edited_df.loc[selected_index]
+                    cursor.execute(
+                        UPDATE_MPOX_QUERY,
+                        {
+                            "g2r_label": row["g2r_label"],
+                            "location": row["Location"],
+                            "epi_week": float(row["EpiWeek"]),
+                            "epi_year": float(row["EpiYear"]),
+                            "week_start": row["Week_start"],
+                        },
                     )
-                )
-            # Update local DataFrame with the edited values
-            st.session_state.df_mpox.loc[selected_index, "g2r_label"] = edited_df.loc[
-                selected_index, "g2r_label"
-            ]
-        trigger_job_run("mpox", log_entries)
+                    # Update SQL DB with the log entry
+                    cursor.execute(
+                        INSERT_LOG_QUERY,
+                        get_log_entry(
+                            st.session_state.df_mpox.loc[selected_index],
+                            edited_df.loc[selected_index],
+                            "Mpox Trends",
+                        ),
+                    )
+                    log_entries.append(
+                        get_log_entry(
+                            st.session_state.df_mpox.loc[selected_index],
+                            edited_df.loc[selected_index],
+                            "Mpox Trends",
+                        )
+                    )
+                # Update local DataFrame with the edited values
+                st.session_state.df_mpox.loc[selected_index, "g2r_label"] = edited_df.loc[
+                    selected_index, "g2r_label"
+                ]
+            trigger_job_run("mpox", log_entries)
 
-        print("dialog triggered re-render")
-        st.rerun()
+            st.session_state.show_success_toast = True
+            print("dialog triggered re-render")
+            st.rerun()
 
 
 def app():
+    if "show_success_toast" in st.session_state and st.session_state.show_success_toast:
+        st.toast('Data successfully updated!', icon='✅')
+        st.session_state.show_success_toast = False
+        
     if "df_mpox" not in st.session_state:
         with st.spinner(
             "If the data cluster is cold starting, this may take up to 5 minutes",

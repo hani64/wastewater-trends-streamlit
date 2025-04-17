@@ -142,40 +142,46 @@ def edit_data_form(selected_indices):
     )
 
     if st.button("Submit", type="primary"):
-        for selected_index in selected_indices:
-            with get_cursor() as cursor:
-                # Update SQL DB with the edited values
-                row = edited_df.loc[selected_index]
-                cursor.execute(
-                    UPDATE_LARGE_JUMPS_QUERY,
-                    {
-                        "action_item": row["actionItem"],
-                        "site_id": row["siteID"],
-                        "dataset_id": row["datasetID"],
-                        "measure": row["measure"],
-                        "previous_obs_dt": row["previousObsDT"],
-                        "latest_obs_dt": row["latestObsDT"],
-                    },
+        with st.spinner("Submitting changes..."):
+            for selected_index in selected_indices:
+                with get_cursor() as cursor:
+                    # Update SQL DB with the edited values
+                    row = edited_df.loc[selected_index]
+                    cursor.execute(
+                        UPDATE_LARGE_JUMPS_QUERY,
+                        {
+                            "action_item": row["actionItem"],
+                            "site_id": row["siteID"],
+                            "dataset_id": row["datasetID"],
+                            "measure": row["measure"],
+                            "previous_obs_dt": row["previousObsDT"],
+                            "latest_obs_dt": row["latestObsDT"],
+                        },
+                    )
+                    # Update SQL DB with the log entry
+                    cursor.execute(
+                        INSERT_LOG_QUERY,
+                        get_log_entry(
+                            st.session_state.df_large_jumps.loc[selected_index],
+                            edited_df.loc[selected_index],
+                            "Large Jumps",
+                        ),
+                    )
+                # Update local DataFrame with the edited values
+                st.session_state.df_large_jumps.loc[selected_index, "actionItem"] = (
+                    edited_df.loc[selected_index, "actionItem"]
                 )
-                # Update SQL DB with the log entry
-                cursor.execute(
-                    INSERT_LOG_QUERY,
-                    get_log_entry(
-                        st.session_state.df_large_jumps.loc[selected_index],
-                        edited_df.loc[selected_index],
-                        "Large Jumps",
-                    ),
-                )
-            # Update local DataFrame with the edited values
-            st.session_state.df_large_jumps.loc[selected_index, "actionItem"] = (
-                edited_df.loc[selected_index, "actionItem"]
-            )
 
-        print("dialog triggered re-render")
-        st.rerun()
+            st.session_state.show_success_toast = True
+            print("dialog triggered re-render")
+            st.rerun()
 
 
 def app():
+    if "show_success_toast" in st.session_state and st.session_state.show_success_toast:
+        st.toast('Data successfully updated!', icon='✅')
+        st.session_state.show_success_toast = False
+    
     if "df_large_jumps" not in st.session_state:
         with st.spinner(
             "If the data cluster is cold starting, this may take up to 5 minutes",

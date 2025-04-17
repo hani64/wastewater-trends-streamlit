@@ -134,48 +134,54 @@ def edit_data_form(selected_indices):
     if st.session_state.edited_data_ww["edited_rows"] and st.button(
         "Submit", type="primary"
     ):
-        log_entries = []
-        for selected_index in selected_indices:
-            with get_cursor() as cursor:
-                # Update SQL DB with edited values
-                row = edited_df.loc[selected_index]
-                cursor.execute(
-                    UPDATE_WW_TRENDS_QUERY,
-                    {
-                        "viral_activity_level": row["Viral_Activity_Level"],
-                        "location": row["Location"],
-                        "measure": row["measure"],
-                        "city": row["City"],
-                        "province": row["Province"],
-                    },
-                )
-                # Update SQL DB with the log entry
-                cursor.execute(
-                    INSERT_LOG_QUERY,
-                    get_log_entry(
-                        st.session_state.df_ww.loc[selected_index],
-                        edited_df.loc[selected_index],
-                        "Water Wastewater Trends",
-                    ),
-                )
-                log_entries.append(
-                    get_log_entry(
-                        st.session_state.df_ww.loc[selected_index],
-                        edited_df.loc[selected_index],
-                        "Water Wastewater Trends",
+        with st.spinner("Submitting changes..."):
+            log_entries = []
+            for selected_index in selected_indices:
+                with get_cursor() as cursor:
+                    # Update SQL DB with edited values
+                    row = edited_df.loc[selected_index]
+                    cursor.execute(
+                        UPDATE_WW_TRENDS_QUERY,
+                        {
+                            "viral_activity_level": row["Viral_Activity_Level"],
+                            "location": row["Location"],
+                            "measure": row["measure"],
+                            "city": row["City"],
+                            "province": row["Province"],
+                        },
                     )
+                    # Update SQL DB with the log entry
+                    cursor.execute(
+                        INSERT_LOG_QUERY,
+                        get_log_entry(
+                            st.session_state.df_ww.loc[selected_index],
+                            edited_df.loc[selected_index],
+                            "Water Wastewater Trends",
+                        ),
+                    )
+                    log_entries.append(
+                        get_log_entry(
+                            st.session_state.df_ww.loc[selected_index],
+                            edited_df.loc[selected_index],
+                            "Water Wastewater Trends",
+                        )
+                    )
+                # Update the dataframe with the edited values
+                st.session_state.df_ww.loc[selected_index, "Viral_Activity_Level"] = (
+                    edited_df.loc[selected_index, "Viral_Activity_Level"]
                 )
-            # Update the dataframe with the edited values
-            st.session_state.df_ww.loc[selected_index, "Viral_Activity_Level"] = (
-                edited_df.loc[selected_index, "Viral_Activity_Level"]
-            )
-        trigger_job_run("ww-trends", log_entries)
-
-        print("dialog triggered re-render")
-        st.rerun()
+            trigger_job_run("ww-trends", log_entries)
+            
+            st.session_state.show_success_toast = True
+            print("dialog triggered re-render")
+            st.rerun()
 
 
 def app():
+    if "show_success_toast" in st.session_state and st.session_state.show_success_toast:
+        st.toast('Data successfully updated!', icon='✅')
+        st.session_state.show_success_toast = False
+        
     if "df_ww" not in st.session_state:
         with st.spinner(
             "If the data cluster is cold starting, this may take up to 5 minutes",
