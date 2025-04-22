@@ -30,19 +30,23 @@ wastewater-trends-streamlit/
 ```mermaid
 graph
     subgraph "Database"
-            I[Databricks SQL Warehouse]
-            J[(WW_TRENDS_TABLE)]
-            K[(MPOX_TABLE)]
-            L[(LARGE_JUMPS_TABLE)]
-            M[(LOGS_TABLE)]
-            N[(LATEST_MEASURES_TABLE)]
-            O[(ALLSITES_TABLE)]
+        style Database fill:#fff6d4
+
+        I[Databricks SQL Warehouse]
+        J[(WW_TRENDS_TABLE)]
+        K[(MPOX_TABLE)]
+        L[(LARGE_JUMPS_TABLE)]
+        M[(LOGS_TABLE)]
+        N[(LATEST_MEASURES_TABLE)]
+        O[(ALLSITES_TABLE)]
     end
 
     subgraph "Application"
+    style Application fill:#fff6d4
         A[app.py]
         
         subgraph "Views"
+            style Views fill:#ffe7e0
             subgraph F["admin-page.py"]
                 app_admin[app]
             end
@@ -70,11 +74,12 @@ graph
         end
 
         subgraph "Shared&nbspUtilities"
-            direction TB
+            style Shared&nbspUtilities fill:#fcf0ff
             G[utils.py]
             H[.env]
             
-            subgraph "Core Functions"
+            subgraph "Core&nbspFunctions"
+                style Core&nbspFunctions fill:#cffae0
                 get_db_connection[get_db_connection]
                 get_cursor[get_cursor]
                 trigger_job_run[trigger_job_run]
@@ -85,6 +90,8 @@ graph
             end
 
             subgraph "SQL&nbspQuery&nbspTemplates"
+                style SQL&nbspQuery&nbspTemplates fill:#d5f2f5
+
                 select_ww_data[FETCH_WW_TRENDS_QUERY]
                 update_ww[UPDATE_WW_TRENDS_QUERY]
                 select_mpox_data[FETCH_MPOX_QUERY]
@@ -127,7 +134,8 @@ graph
         edit_data_form_large_jumps[edit_data_form]
 
         %% Legend
-        subgraph Legend
+        subgraph Node&nbspLegend
+        style Node&nbspLegend fill:#ffffff
             z1[Application Root]
             z2[Python Files]
             z3[Defined Constant Variables]
@@ -148,6 +156,7 @@ graph
         class I,J,K,L,M,N,O,z4 db
         class create_sunburst_graph,edit_data_form_ww,edit_data_form_mpox,create_jump_plot,edit_data_form_large_jumps,get_db_connection,get_cursor,trigger_job_run,get_user_info,get_username,can_user_edit,get_log_entry,z5 feature
     end
+
 ```
 
 
