@@ -18,10 +18,11 @@ A Streamlit-based dashboard for monitoring, analyzing, and modifying wastewater 
 wastewater-trends-streamlit/
 ├── app.py                    # Main application entry
 ├── views/                    # Page components
-│   ├── large-jumps.py        # Handles the "Large Jumps" page
-│   ├── latest-measures.py    # Handles the "Latest Measures" page
-│   ├── mpox.py               # Handles the "Mpox Trends" page
 │   ├── ww-trends.py          # Handles the "Wastewater Trends" page
+│   ├── mpox.py               # Handles the "Mpox Trends" page
+│   ├── latest-measures.py    # Handles the "Latest Measures" page
+│   ├── large-jumps.py        # Handles the "Large Jumps" page
+│   ├── admin-page.py         # Shows a log of user actions to admin users
 ├── utils.py                  # Shared util functions
 ├── .env                      # Environment configuration
 └── requirements.txt          # Dependencies
@@ -65,6 +66,13 @@ MPOX_JOB_ID = ""
 
 DEVELOPMENT = "TRUE" # Only add this value in your dev environment
 ```
+
+`ADB_INSTANCE_NAME`, `ADB_HTTP_PATH`, and `ADB_API_KEY` can be accessed by going to Databricks -> SQL Warehouse -> Wastewater Warehouse -> Connection Details -> Python. The code snippet that pops up on your screen will include these variables for our ADB instance and let you generate an API KEY.
+
+The TABLE variables (`WW_TRENDS_TABLE`, `MPOX_TABLE`, etc.) can be found under Databricks -> Catalog -> hive_metastore -> wastewater. These tables can later renamed or moved if the app however the schema must be the same.
+
+
+`WW_JOB_ID` and `MPOX_JOB_ID` are the jobs within Databricks that are responsible for syncing user changes with the main SQL DB aswell as sending email notifications. These can be found by going to Databricks -> Workflows and find the two jobs with the names **Wastewater - Push Streamlit Data - Mpox Trends** and **Wastewater - Push Streamlit Data - Respiratory Virus Trends**. If you click on either of these jobs you can find the JOB ID on the right under job details.
 
 ## 📈 Usage
 

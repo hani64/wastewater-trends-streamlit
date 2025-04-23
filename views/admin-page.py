@@ -1,12 +1,17 @@
+import os
 import streamlit as st
 import pandas as pd
 
-from utils import FETCH_LOG_QUERY, DELETE_LOG_QUERY, get_cursor, get_username
+from utils import FETCH_LOG_QUERY, DELETE_LOG_QUERY, get_cursor, get_user_info
 
 
 def app():
     # Only allow a specific username to access this view
-    if get_username() not in ["dev", "hani.asim@phac-aspc.gc.ca", "asma.bahamyirou@phac-aspc.gc.ca"]:
+    if os.getenv(
+        "DEVELOPMENT"
+    ) != "TRUE" and "Wastewater_StreamLit_AdminPage" not in get_user_info().get(
+        "groups"
+    ):
         st.error("Access denied. You do not have permission to view this page.")
         return
 
