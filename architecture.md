@@ -1,3 +1,7 @@
+# Application Architecture Overview
+
+## Visual Diagram
+
 ```mermaid
 ---
 config:
@@ -138,3 +142,61 @@ graph
         class Application,shared_utilities,Database subgraphStyle
     end
 ```
+
+# Application Architecture Overview
+
+## Core Components
+
+1.  **Main Application (`app.py`)**
+
+    *   Entry point that sets up navigation between different views.
+    *   Uses Streamlit's page system (`st.navigation`) to manage multiple views, each defined as a separate Python file.
+
+2.  **View Pages**
+
+    *   [`ww-trends.py`](views/ww-trends.py): Respiratory virus trends visualization with sunburst graphs.
+        *   Uses `create_sunburst_graph()` to display viral activity levels by region.
+        *   Implements `edit_data_form_ww()` (a Streamlit dialog) for editing and submitting data.
+    *   [`mpox.py`](views/mpox.py): Mpox trends data management.
+        *   Implements `edit_data_form_mpox()` (a Streamlit dialog) for editing and submitting data.
+    *   [`latest-measures.py`](views/latest-measures.py): Display of measures from within the last 30 days.
+    *   [`large-jumps.py`](views/large-jumps.py): Display of anomalous measures (difference between log(`latestObs`) 
+    and log(`previousObs`) is > 1 or `latestObs` is > historical maximum recorded for a site and measure) 
+    detected from the last 30 days.
+        *   Uses `create_jump_plot()` to visualize large jumps in measurements over time.
+        *   Implements `edit_data_form_large_jumps()` (a Streamlit dialog) for editing and submitting data.
+    *   [`admin-page.py`](views/admin-page.py): Page displaying list of user action logs.
+
+3.  **Utilities (`utils.py`)**
+
+    *   Core database functions: [`get_db_connection()`](utils.py), [`get_cursor()`](utils.py).
+    *   User management: [`get_user_info()`](utils.py), [`get_username()`](utils.py), [`can_user_edit()`](utils.py).
+    *   Job management: [`trigger_job_run()`](utils.py).
+    *   Logging: [`get_log_entry()`](utils.py).
+    *   SQL query templates for all database operations:
+        *   `FETCH_WW_TRENDS_QUERY`, `UPDATE_WW_TRENDS_QUERY` (for `WW_TRENDS_TABLE`).
+        *   `FETCH_MPOX_QUERY`, `UPDATE_MPOX_QUERY` (for `MPOX_TABLE`).
+        *   `FETCH_LARGE_JUMPS_QUERY`, `UPDATE_LARGE_JUMPS_QUERY` (for `LARGE_JUMPS_TABLE`).
+        *   `FETCH_LOG_QUERY`, `INSERT_LOG_QUERY`, `DELETE_LOG_QUERY` (for `LOGS_TABLE`).
+        *   `FETCH_LATEST_MEASURES_QUERY` (for `LATEST_MEASURES_TABLE`).
+        *   `FETCH_BEFORE_LARGE_JUMP_QUERY`, `FETCH_AFTER_LARGE_JUMP_QUERY` (for `ALLSITES_TABLE`).
+
+4.  **Database Layer**
+
+    *   Databricks SQL Warehouse containing tables:
+        *   `WW_TRENDS_TABLE`: Wastewater trends data.
+        *   `MPOX_TABLE`: Mpox surveillance data.
+        *   `LARGE_JUMPS_TABLE`: Anomaly detection records.
+        *   `LOGS_TABLE`: Audit logging.
+        *   `LATEST_MEASURES_TABLE`: Recent measurements.
+        *   `ALLSITES_TABLE`: Site reference data, used for historical data in large jump plots.
+
+## Data Flow
+*   The user navigates to a specific page in the Streamlit application (e.g., Wastewater Trends, Mpox Trends).
+*   The application loads data for the selected page from the Databricks SQL Warehouse, using queries defined in [`utils.py`](utils.py) (e.g., [`FETCH_WW_TRENDS_QUERY`](utils.py), [`FETCH_MPOX_QUERY`](utils.py), [`FETCH_LARGE_JUMPS_QUERY`](utils.py)).
+*   The user views the data in a Streamlit dataframe. If the user has edit permissions ([`can_user_edit()`](utils.py)), they can select one or more rows for editing.
+*   The user modifies the data using the `edit_data_form` dialog pop-up.
+*   Upon submission, the application updates the corresponding table in the Databricks SQL Warehouse, using queries like [`UPDATE_WW_TRENDS_QUERY`](utils.py), [`UPDATE_MPOX_QUERY`](utils.py), or [`UPDATE_LARGE_JUMPS_QUERY`](utils.py).
+*   The application logs the changes using [`get_log_entry()`](utils.py) and [`INSERT_LOG_QUERY`](utils.py).
+*   The application triggers a Databricks job (using [`trigger_job_run()`](utils.py)) to sync the changes with the main MSSQL database. The specific job ID is determined by the page (e.g., `WW_JOB_ID` or `MPOX_JOB_ID` from the environment variables).
+*   The Databricks job also sends a GC-Notify email to the user, confirming that their changes were successfully applied.
