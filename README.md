@@ -30,6 +30,8 @@ wastewater-trends-streamlit/
 
 ![App Architecture Diagram](diagram.png)
 
+#### Refer to [architecture.md](architecture.md) for a more detailed overview
+
 
 ## 🛠️ Installation
 

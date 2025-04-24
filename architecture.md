@@ -143,7 +143,6 @@ graph
     end
 ```
 
-# Application Architecture Overview
 
 ## Core Components
 
