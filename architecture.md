@@ -34,6 +34,7 @@ graph
                 app_ww[app]
                 app_ww --> create_sunburst_graph
                 app_ww --> edit_data_form_ww
+                app_ww --> get_missing_PT
             end
 
             subgraph C["mpox.py"]
@@ -111,6 +112,7 @@ graph
 
         %% Feature Nodes
         create_sunburst_graph[create_sunburst_graph]
+        get_missing_PT[get_missing_PT]
         edit_data_form_ww[edit_data_form]
         edit_data_form_mpox[edit_data_form]
         create_jump_plot[create_jump_plot]
@@ -138,7 +140,7 @@ graph
         class B,C,D,E,F,G,z2 views
         class H,select_ww_data,update_ww,select_mpox_data,update_mpox,select_jumps_data,update_jumps,select_logs,insert_log,delete_log,select_latest,select_before_jump,select_after_jump,z3 consts
         class I,J,K,L,M,N,O,z4 db
-        class app_ww,app_mpox,app_latest_measures,app_admin,app_large_jumps,create_sunburst_graph,edit_data_form_ww,edit_data_form_mpox,create_jump_plot,edit_data_form_large_jumps,get_db_connection,get_cursor,trigger_job_run,get_user_info,get_username,can_user_edit,get_log_entry,z5 function
+        class app_ww,app_mpox,app_latest_measures,app_admin,app_large_jumps,create_sunburst_graph,get_missing_PT,edit_data_form_ww,edit_data_form_mpox,create_jump_plot,edit_data_form_large_jumps,get_db_connection,get_cursor,trigger_job_run,get_user_info,get_username,can_user_edit,get_log_entry,z5 function
         class Application,shared_utilities,Database subgraphStyle
     end
 ```
@@ -156,6 +158,7 @@ graph
     *   [`ww-trends.py`](views/ww-trends.py): Respiratory virus trends visualization with sunburst graphs.
         *   Uses `create_sunburst_graph()` to display viral activity levels by region.
         *   Implements `edit_data_form_ww()` (a Streamlit dialog) for editing and submitting data.
+        *   Uses `get_missing_PT()` to check if any of the PTs are missing or if Canada is missing from data.
     *   [`mpox.py`](views/mpox.py): Mpox trends data management.
         *   Implements `edit_data_form_mpox()` (a Streamlit dialog) for editing and submitting data.
     *   [`latest-measures.py`](views/latest-measures.py): Display of measures from within the last 30 days.
@@ -197,5 +200,5 @@ graph
 *   The user modifies the data using the `edit_data_form` dialog pop-up.
 *   Upon submission, the application updates the corresponding table in the Databricks SQL Warehouse, using queries like [`UPDATE_WW_TRENDS_QUERY`](utils.py), [`UPDATE_MPOX_QUERY`](utils.py), or [`UPDATE_LARGE_JUMPS_QUERY`](utils.py).
 *   The application logs the changes using [`get_log_entry()`](utils.py) and [`INSERT_LOG_QUERY`](utils.py).
-*   The application triggers a Databricks job (using [`trigger_job_run()`](utils.py)) to sync the changes with the main MSSQL database. The specific job ID is determined by the page (e.g., `WW_JOB_ID` or `MPOX_JOB_ID` from the environment variables).
+*   The application triggers a Databricks job (using [`trigger_job_run()`](utils.py)) to sync the changes with the main MSSQL database and blob-storage CSV files. The specific job ID is determined by the page (e.g., `WW_JOB_ID` or `MPOX_JOB_ID` from the environment variables).
 *   The Databricks job also sends a GC-Notify email to the user, confirming that their changes were successfully applied.
