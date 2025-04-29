@@ -10,7 +10,6 @@ from utils import (
     get_cursor,
     trigger_job_run,
     get_log_entry,
-    get_username,
 )
 
 
@@ -23,10 +22,42 @@ COLOR_MAP = {
     "NA2": "#A8A8A8",
 }
 
+prov_to_abbr = {
+    "Alberta": "AB",
+    "British Columbia": "BC",
+    "Manitoba": "MB",
+    "New Brunswick": "NB",
+    "Newfoundland and Labrador": "NL",
+    "Nova Scotia": "NS",
+    "Ontario": "ON",
+    "Prince Edward Island": "PE",
+    "Quebec": "QC",
+    "Saskatchewan": "SK",
+    "Northwest Territories": "NT",
+    "Nunavut": "NU",
+    "Yukon": "YT",
+}
+
 USER_CAN_EDIT = can_user_edit()
 
 
-def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
+def get_missing_PT(df: pd.DataFrame, measure: str) -> bool:
+    df = df[df["measure"] == measure]
+
+    filtered_locations = set(df[df["Location"].isin(prov_to_abbr.keys())]["Location"])
+    provinces = set(df[df["Province"] != ""]["Province"])
+
+    missing = provinces - filtered_locations
+    # Check if Canada is missing
+    if not (df["Location"] == "Canada").any():
+        missing.add("Canada")
+
+    return missing
+
+
+def create_sunburst_graph(
+    df: pd.DataFrame, measure: str
+) -> tuple[px.sunburst, list[str]]:
     df = df[df["measure"] == measure]
 
     labels = []
@@ -41,24 +72,13 @@ def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
         ~df["City"].isin(df[df["Grouping"] == "City"]["Location"].unique())
     )
 
-    prov_to_abbr = {
-        "Alberta": "AB",
-        "British Columbia": "BC",
-        "Manitoba": "MB",
-        "New Brunswick": "NB",
-        "Newfoundland and Labrador": "NL",
-        "Nova Scotia": "NS",
-        "Ontario": "ON",
-        "Prince Edward Island": "PE",
-        "Quebec": "QC",
-        "Saskatchewan": "SK",
-        "Northwest Territories": "NT",
-        "Nunavut": "NU",
-        "Yukon": "YT",
-    }
-
     for i, row in df.iterrows():
-        values.append(row["Viral_Activity_Level"])
+        viral_activity = row["Viral_Activity_Level"]
+        if pd.isna(viral_activity):
+            print(f"Missing Viral_Activity_Level for {row['Location']}")
+            viral_activity = "NA1"
+
+        values.append(viral_activity)
         if row["Grouping"] == "Site":
             labels.append(row["Location"])
             parent = prov_to_abbr[row["Province"]] if site_only_mask[i] else row["City"]
@@ -73,9 +93,8 @@ def create_sunburst_graph(df: pd.DataFrame, measure: str) -> px.sunburst:
             labels.append("Canada")
             parents.append("")
 
-    data = {"labels": labels, "parents": parents, "values": values}
-
     # Convert to a DataFrame
+    data = {"labels": labels, "parents": parents, "values": values}
     data = pd.DataFrame(data)
 
     fig = px.sunburst(
@@ -171,7 +190,7 @@ def edit_data_form(selected_indices):
                     edited_df.loc[selected_index, "Viral_Activity_Level"]
                 )
             trigger_job_run("ww-trends", log_entries)
-            
+
             st.session_state.show_success_toast = True
             print("dialog triggered re-render")
             st.rerun()
@@ -179,9 +198,9 @@ def edit_data_form(selected_indices):
 
 def app():
     if "show_success_toast" in st.session_state and st.session_state.show_success_toast:
-        st.toast('Data successfully updated!', icon='✅')
+        st.toast("Data successfully updated!", icon="✅")
         st.session_state.show_success_toast = False
-        
+
     if "df_ww" not in st.session_state:
         with st.spinner(
             "If the data cluster is cold starting, this may take up to 5 minutes",
@@ -197,10 +216,19 @@ def app():
 
     left, right = st.columns([4, 1], vertical_alignment="center")
 
-    left.plotly_chart(
-        create_sunburst_graph(st.session_state.df_ww, st.session_state.measure),
-        use_container_width=True,
-    )
+    missing_PT = get_missing_PT(st.session_state.df_ww, st.session_state.measure)
+    if missing_PT:
+        error_container = left.container()
+        for PT in missing_PT:
+            error_container.error(f"⛔ Missing data for **{PT}** PT in the dataset.")
+        error_container.warning(
+            f"The visualization requires data from all provinces to render the complete graph. Please add the missing PT data."
+        )
+    else:
+        left.plotly_chart(
+            create_sunburst_graph(st.session_state.df_ww, st.session_state.measure),
+            use_container_width=True,
+        )
 
     legend = pd.DataFrame(
         list(COLOR_MAP.items()), columns=["Viral Activity Level", "Color"]
