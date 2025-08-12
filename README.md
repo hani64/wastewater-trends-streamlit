@@ -36,7 +36,7 @@ wastewater-trends-streamlit/
 ## 🛠️ Installation
 
 ```bash
-git clone https://github.com/PHACDataHub/wastewater-trends-streamlit.git
+git clone https://github.com/hani64/wastewater-trends-streamlit.git
 cd wastewater-trends-streamlit
 python -m venv .venv
 source .venv/bin/activate # If on Linux
